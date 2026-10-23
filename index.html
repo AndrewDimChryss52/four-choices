@@ -1,0 +1,1739 @@
+<!doctype html>
+<html lang="el" data-mode="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Four Choices</title>
+<meta name="description" content="Ημερήσιο κουίζ: 10 ερωτήσεις, 4 επιλογές, τρία επίπεδα.">
+<meta name="theme-color" content="#1f3a5f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  /* ---------- Χρώματα: φωτεινό (προεπιλογή) ---------- */
+  :root {
+    --bg: #f6f4ef; --surface: #ffffff; --text: #1d232b; --muted: #5c6672;
+    --line: #d9d4ca; --accent: #1f3a5f; --accent-text: #ffffff;
+    --ok: #1f7a4d; --ok-bg: #e2f3ea; --bad: #b3261e; --bad-bg: #fbe4e2;
+    --timer: #c98a12; --instant: #8a5a00; --border: 2px; --base: 17px; --q: 21px;
+  }
+  /* Αυτόματο: ακολουθεί το σκοτεινό θέμα του κινητού (ή του περιβάλλοντος που το φιλοξενεί, data-theme) */
+  @media (prefers-color-scheme: dark) {
+    :root[data-mode="auto"]:not([data-theme="light"]) {
+      --bg: #12161c; --surface: #1b2129; --text: #eef1f4; --muted: #9aa5b1;
+      --line: #2c343e; --accent: #8fb4e3; --accent-text: #0e1620;
+      --ok: #6fd3a0; --ok-bg: #173226; --bad: #ff8a80; --bad-bg: #3a1c1a; --timer: #f0b84a; --instant: #f0b84a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-mode="auto"][data-theme="dark"] {
+    --bg: #12161c; --surface: #1b2129; --text: #eef1f4; --muted: #9aa5b1;
+    --line: #2c343e; --accent: #8fb4e3; --accent-text: #0e1620;
+    --ok: #6fd3a0; --ok-bg: #173226; --bad: #ff8a80; --bad-bg: #3a1c1a; --timer: #f0b84a; --instant: #f0b84a;
+    color-scheme: dark;
+  }
+  /* Έντονο φως ήλιου: μέγιστη αντίθεση, μεγαλύτερα γράμματα, χοντρά περιγράμματα */
+  :root[data-mode="sun"] {
+    --bg: #ffffff; --surface: #ffffff; --text: #000000; --muted: #1a1a1a;
+    --line: #000000; --accent: #000000; --accent-text: #ffffff;
+    --ok: #005a2b; --ok-bg: #c9f2d9; --bad: #9a0000; --bad-bg: #ffd1d1;
+    --timer: #000000; --instant: #5a3a00; --border: 3px; --base: 19px; --q: 24px;
+  }
+  /* Εξοικονόμηση μπαταρίας: καθαρό μαύρο (σβηστά pixel σε οθόνες OLED), χωρίς κινήσεις */
+  :root[data-mode="saver"] {
+    --bg: #000000; --surface: #000000; --text: #c8c8c8; --muted: #7a7a7a;
+    --line: #262626; --accent: #6f8fb8; --accent-text: #000000;
+    --ok: #5fae84; --ok-bg: #0b1f14; --bad: #d07070; --bad-bg: #241010; --timer: #8a7440; --instant: #a88c4a;
+    color-scheme: dark;
+  }
+  :root[data-mode="saver"] *, :root[data-mode="saver"] *::before { transition: none !important; animation: none !important; }
+  :root[data-mode="sun"] .opt, :root[data-mode="sun"] .card { font-weight: 650; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: var(--base)/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100dvh; display: flex; justify-content: center;
+    padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .brand { font-weight: 800; letter-spacing: .02em; font-size: 18px; margin-right: auto; white-space: nowrap; }
+  .brand span { color: var(--accent); }
+  .seg { display: flex; border: var(--border) solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+  .seg.wide { border-radius: 12px; }
+  .seg.wide button { flex: 1; padding: 10px 6px; font-size: 14px; }
+  .icon-btn { border: var(--border) solid var(--line); background: transparent; color: var(--text); border-radius: 999px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
+  .chip { border: var(--border) solid var(--line); background: transparent; color: var(--text); border-radius: 999px; height: 36px; padding: 0 10px; font: inherit; font-size: 14px; cursor: pointer; max-width: 7em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card { background: var(--surface); border: var(--border) solid var(--line); border-radius: 16px; padding: 20px; }
+  h1 { font-size: 24px; margin: 0 0 8px; line-height: 1.25; }
+  h2 { font-size: 16px; margin: 4px 0 6px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .primary {
+    width: 100%; border: 0; border-radius: 12px; padding: 16px; font: inherit; font-weight: 700;
+    background: var(--accent); color: var(--accent-text); cursor: pointer;
+  }
+  .secondary {
+    width: 100%; border: var(--border) solid var(--line); border-radius: 12px; padding: 14px; font: inherit;
+    background: transparent; color: var(--text); cursor: pointer;
+  }
+  .primary:disabled, .secondary:disabled { opacity: .5; cursor: default; }
+  .link { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; padding: 4px 0; cursor: pointer; text-decoration: underline; }
+  .danger { color: var(--bad); }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type="text"], input[type="password"], textarea {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: var(--border) solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  textarea { min-height: 84px; font-size: 12px; font-family: ui-monospace, Consolas, monospace; word-break: break-all; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .msg { min-height: 1.2em; font-size: 14px; margin: 0; }
+  .msg.bad { color: var(--bad); } .msg.ok { color: var(--ok); }
+  .playerline { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); }
+  .playerline b { color: var(--text); }
+  .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); }
+  .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  :root[data-mode="sun"] .bar { height: 12px; }
+  .bar > div { height: 100%; background: var(--timer); width: 100%; transform-origin: left; }
+  /* Το κείμενο του παιχνιδιού δεν επιλέγεται/αντιγράφεται (δυσκολεύει το «αντιγραφή → επικόλληση σε ΤΝ») */
+  #shareMsg { white-space: pre-line; -webkit-user-select: text; user-select: text; }
+  #game { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #game.relaxed .bar { visibility: hidden; }
+  .question { font-size: var(--q); font-weight: 650; min-height: 3.2em; margin: 4px 0 0; }
+  .options { display: grid; gap: 10px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; text-align: left;
+    border: var(--border) solid var(--line); border-radius: 14px; padding: 12px 14px; font: inherit;
+    background: var(--surface); color: var(--text); cursor: pointer;
+  }
+  .opt .key {
+    flex: 0 0 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: var(--bg); font-weight: 800; border: 1px solid var(--line);
+  }
+  .opt .mark { margin-left: auto; font-weight: 800; }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--ok); background: var(--ok-bg); }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+  .opt.correct .mark::after { content: "✓"; color: var(--ok); }
+  .opt.wrong .mark::after { content: "✗"; color: var(--bad); }
+  .feedback { min-height: 1.5em; font-weight: 700; text-align: center; }
+  .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); }
+  .feedback .instant { color: var(--instant); }
+  .score { font-size: 44px; font-weight: 800; margin: 4px 0; }
+  .grid { font-size: min(26px, 6vw); letter-spacing: 2px; white-space: nowrap; margin: 8px 0 4px; }
+  .legend { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .badge { display: inline-block; border: var(--border) solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 13px; margin-bottom: 8px; }
+  .badge.ok { border-color: var(--ok); color: var(--ok); }
+  .badge.bad { border-color: var(--bad); color: var(--bad); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin: 12px 0; }
+  @media (max-width: 380px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stats div { border: var(--border) solid var(--line); border-radius: 12px; padding: 10px 4px; min-width: 0; }
+  .stats b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stats small { color: var(--muted); font-size: 12px; }
+  .players { display: flex; flex-direction: column; gap: 8px; }
+  .player { border: var(--border) solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .player.current { border-color: var(--accent); }
+  .player .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .player .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .player .pts { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; white-space: nowrap; }
+  /* Εξήγηση μετά την απάντηση */
+  .explain { border-left: 4px solid var(--accent); background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+  .explain p { margin: 0 0 6px; }
+  .explain a, .review a { color: var(--accent); font-size: 13px; }
+  #game .explain { -webkit-user-select: text; user-select: text; }
+  /* Ανασκόπηση γύρου */
+  details.review { margin: 4px 0 12px; }
+  details.review summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+  .review ol { margin: 6px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .review li { border: var(--border) solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .review li b { display: block; margin-bottom: 2px; }
+  .review .ans { color: var(--ok); font-weight: 700; }
+  /* Νέα επιτεύγματα, κάρτα */
+  .toast { border: var(--border) solid var(--instant); color: var(--text); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+  .toast b { color: var(--instant); }
+  #vsBox div { font-variant-numeric: tabular-nums; }
+  #vsBox .verdict { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+  #vsBox .vsgrid { white-space: nowrap; letter-spacing: 1px; margin-bottom: 4px; }
+  #cardImg { width: 100%; border-radius: 12px; border: var(--border) solid var(--line); }
+  /* Στατιστικά και επιτεύγματα */
+  .cats { display: flex; flex-direction: column; gap: 8px; }
+  .catrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 14px; }
+  .catrow .bar { grid-column: 1 / -1; height: 6px; }
+  .catrow .bar > div { background: var(--ok); }
+  .achs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .ach { border: var(--border) solid var(--line); border-radius: 12px; padding: 8px 10px; font-size: 13px; min-width: 0; }
+  .ach .ic { font-size: 24px; }
+  .ach b { display: block; font-size: 14px; }
+  .ach.locked { opacity: .45; }
+  .ach.locked .ic { filter: grayscale(1); }
+  /* Δείκτες, ανά επίπεδο, ιστορικό (Β3/Β11) */
+  .lvltable { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .lvltable th, .lvltable td { border-bottom: 1px solid var(--line); padding: 5px 3px; text-align: right; }
+  .lvltable th:first-child, .lvltable td:first-child { text-align: left; }
+  .lvltable tr.all td { font-weight: 700; }
+  .hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .hist button { width: 100%; text-align: left; border: var(--border) solid var(--line); border-radius: 12px; padding: 8px 10px;
+    background: transparent; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+  .hist .g { display: block; letter-spacing: 1px; white-space: nowrap; font-size: 15px; }
+  .hidden { display: none !important; }
+  footer { font-size: 12px; color: var(--muted); text-align: center; }
+  :focus-visible { outline: 3px solid var(--timer); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">Four <span>Choices</span></div>
+    <button id="openPlayers" class="chip" type="button"></button>
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" data-lang="el">ΕΛ</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+    <button id="openSettings" class="icon-btn" type="button" aria-label="Ρυθμίσεις">⚙</button>
+  </header>
+
+  <!-- Καλωσόρισμα: πρώτη χρήση, δημιουργία παίκτη -->
+  <section id="welcome" class="card stack hidden">
+    <h1 data-t="welcomeTitle"></h1>
+    <p class="muted" data-t="welcomeText"></p>
+    <div><label for="newName" data-t="nickname"></label><input id="newName" type="text" maxlength="20" autocomplete="nickname"></div>
+    <div><label for="newPin" data-t="pinOptional"></label><input id="newPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+    <p id="welcomeMsg" class="msg"></p>
+    <button id="createPlayer" class="primary" type="button" data-t="createPlayer"></button>
+    <button id="cancelCreate" class="secondary hidden" type="button" data-t="back"></button>
+    <button id="showImport" class="link" type="button" data-t="haveCode"></button>
+  </section>
+
+  <!-- Παίκτες: σύνδεση, αλλαγή, κατάταξη συσκευής, μεταφορά -->
+  <section id="players" class="card stack hidden">
+    <h1 data-t="playersTitle"></h1>
+    <p class="muted small" data-t="playersText"></p>
+    <div id="playerList" class="players"></div>
+    <div id="pinBox" class="stack hidden">
+      <label for="pinInput" id="pinLabel"></label>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password">
+      <button id="pinOk" class="primary" type="button" data-t="login"></button>
+    </div>
+    <p id="playersMsg" class="msg"></p>
+    <button id="addPlayer" class="secondary" type="button" data-t="newPlayer"></button>
+    <div class="stack">
+      <h2 data-t="transferTitle"></h2>
+      <p class="muted small" data-t="transferText"></p>
+      <button id="makeCode" class="secondary" type="button" data-t="makeCode"></button>
+      <textarea id="codeOut" readonly hidden aria-label="Transfer code"></textarea>
+      <button id="importToggle" class="link" type="button" data-t="haveCode"></button>
+      <div id="importBox" class="stack hidden">
+        <label for="codeIn" data-t="pasteCode"></label>
+        <textarea id="codeIn"></textarea>
+        <button id="importCode" class="secondary" type="button" data-t="importCode"></button>
+      </div>
+    </div>
+    <button id="logout" class="link" type="button" data-t="logout"></button>
+    <button id="closePlayers" class="primary" type="button" data-t="back"></button>
+  </section>
+
+  <!-- Αρχική -->
+  <section id="home" class="card stack hidden">
+    <div class="playerline"><span id="homePlayer"></span><span id="homeTotal"></span></div>
+    <h1 data-t="title"></h1>
+    <p class="muted" id="rules"></p>
+    <div>
+      <h2 data-t="level"></h2>
+      <div id="levels" class="seg wide" role="group"></div>
+    </div>
+    <p id="dateLine" class="muted" style="margin:0"></p>
+    <button id="startDaily" class="primary" type="button"></button>
+    <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
+    <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
+    <p id="practiceInfo" class="muted small" style="margin:0"></p>
+    <button id="startChallenge" class="secondary" type="button" data-t="challenge"></button>
+    <p id="challengeInfo" class="muted small hidden" style="margin:0" data-t="chNone"></p>
+    <button id="chToggle" class="link" type="button" data-t="haveChallenge"></button>
+    <div id="chBox" class="stack hidden">
+      <label for="chIn" data-t="pasteChallenge"></label>
+      <textarea id="chIn"></textarea>
+      <button id="chOpen" class="secondary" type="button" data-t="openChallenge"></button>
+      <p id="chMsg" class="msg"></p>
+    </div>
+    <button id="openProfile" class="link" type="button" data-t="profileBtn"></button>
+  </section>
+
+  <!-- Πρόκληση φίλου: εισαγωγή πριν από το παιχνίδι -->
+  <section id="challenge" class="card stack hidden">
+    <h1 data-t="chTitle"></h1>
+    <p id="chFrom"></p>
+    <div class="grid" id="chGrid" aria-hidden="true"></div>
+    <p class="muted small" data-t="chRules"></p>
+    <p id="chWarn" class="muted small hidden"></p>
+    <button id="chAccept" class="primary" type="button" data-t="chAccept"></button>
+    <button id="chBack" class="secondary" type="button" data-t="back"></button>
+  </section>
+
+  <!-- Στατιστικά και επιτεύγματα του τρέχοντος παίκτη -->
+  <section id="profile" class="card stack hidden">
+    <h1 data-t="profileBtn"></h1>
+    <p id="profileSummary" class="muted"></p>
+    <div>
+      <h2 data-t="kpiTitle"></h2>
+      <div class="stats" style="margin-top:4px">
+        <div><b id="kpiKnow"></b><small data-t="kpiKnow"></small></div>
+        <div><b id="kpiSpeed"></b><small data-t="kpiSpeed"></small></div>
+        <div><b id="kpiMean"></b><small data-t="kpiMean"></small></div>
+        <div><b id="kpiInstant"></b><small data-t="kpiInstant"></small></div>
+      </div>
+      <h2 data-t="levelTitle"></h2>
+      <table class="lvltable"><thead><tr id="lvlHead"></tr></thead><tbody id="lvlBody"></tbody></table>
+      <p class="muted small" data-t="kpiDef" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <h2 data-t="histTitle"></h2>
+      <p class="muted small" data-t="histNote"></p>
+      <ol id="histList" class="hist"></ol>
+    </div>
+    <div>
+      <h2 data-t="catTitle"></h2>
+      <p class="muted small" data-t="catText"></p>
+      <div id="catList" class="cats"></div>
+    </div>
+    <div>
+      <h2 id="achTitle"></h2>
+      <div id="achList" class="achs"></div>
+    </div>
+    <button id="closeProfile" class="primary" type="button" data-t="back"></button>
+  </section>
+
+  <!-- Ρυθμίσεις -->
+  <section id="settings" class="card stack hidden">
+    <h1 data-t="settings"></h1>
+    <div>
+      <h2 data-t="display"></h2>
+      <div id="modes" class="seg wide" role="group"></div>
+      <p class="muted small" id="modeHint" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <h2 data-t="scoringTitle"></h2>
+      <p class="muted small" data-t="scoringText"></p>
+    </div>
+    <div>
+      <h2 data-t="questions"></h2>
+      <p class="muted small" id="bankInfo"></p>
+      <button id="refresh" class="secondary" type="button" data-t="refresh"></button>
+      <p class="muted small" id="refreshMsg" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <h2 data-t="fairTitle"></h2>
+      <p class="muted small" data-t="fairText"></p>
+    </div>
+    <button id="closeSettings" class="primary" type="button" data-t="back"></button>
+  </section>
+
+  <!-- Παιχνίδι -->
+  <section id="game" class="card stack hidden" aria-live="polite">
+    <div class="meta"><span id="progress"></span><span id="category"></span><span id="timeLeft"></span></div>
+    <div class="bar" aria-hidden="true"><div id="timerBar"></div></div>
+    <p id="question" class="question"></p>
+    <div id="options" class="options"></div>
+    <div id="feedback" class="feedback"></div>
+    <div id="explain" class="explain hidden">
+      <p id="explainText"></p>
+      <a id="explainSrc" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+    <button id="nextBtn" class="primary hidden" type="button"></button>
+  </section>
+
+  <!-- Αποτέλεσμα -->
+  <section id="result" class="card hidden">
+    <div id="newAch" class="toast hidden" role="status"></div>
+    <div id="vsBox" class="toast hidden" role="status"></div>
+    <p class="muted" id="resultLabel" style="margin-bottom:4px"></p>
+    <span id="fairBadge" class="badge"></span>
+    <div class="score" id="resultScore"></div>
+    <p id="resultCorrect" style="margin-bottom:4px"></p>
+    <p id="resultInstant" class="small" style="margin-bottom:4px"></p>
+    <p id="resultRules" class="muted small" style="margin-bottom:4px"></p>
+    <div class="grid" id="resultGrid" aria-hidden="true"></div>
+    <div class="legend" data-t="legend"></div>
+    <p class="muted small hidden" id="offSchedule" data-t="offSchedule"></p>
+    <div class="stats">
+      <div><b id="statPlayed"></b><small data-t="played"></small></div>
+      <div><b id="statStreak"></b><small data-t="streak"></small></div>
+      <div><b id="statBest"></b><small data-t="best"></small></div>
+      <div><b id="statTotal"></b><small data-t="total"></small></div>
+    </div>
+    <details id="reviewBox" class="review">
+      <summary data-t="reviewTitle"></summary>
+      <ol id="reviewList"></ol>
+    </details>
+    <div class="stack">
+      <button id="share" class="primary" type="button" data-t="share"></button>
+      <button id="shareCard" class="secondary" type="button" data-t="shareCard"></button>
+      <p id="shareMsg" class="muted hidden" style="text-align:center;margin:0"></p>
+      <img id="cardImg" class="hidden" alt="">
+      <a id="cardSave" class="link hidden" style="text-align:center" data-t="cardSave"></a>
+      <button id="openProfile2" class="secondary" type="button" data-t="profileBtn"></button>
+      <button id="again" class="secondary" type="button" data-t="practice"></button>
+      <button id="home2" class="secondary" type="button" data-t="home"></button>
+      <p id="nextIn" class="muted" style="text-align:center;margin:0"></p>
+    </div>
+  </section>
+
+  <footer data-t="footer"></footer>
+</main>
+
+<script src="questions.js"></script>
+<script src="schedule.js"></script>
+<script src="explanations.js"></script>
+<script>
+"use strict";
+
+const ROUND = 10;          // ερωτήσεις ανά ημέρα
+const EPOCH = Date.UTC(2026, 0, 1);
+const STORE = "fourchoices.v3";
+const OLD_STORE = "fourchoices.v2";
+const LOW_BATTERY = 0.2;   // κάτω από 20% (χωρίς φόρτιση) το «Αυτόματο» περνά σε εξοικονόμηση
+// Βαθμολογία ανά σωστή απάντηση: βάση + μπόνους ταχύτητας + μπόνους άμεσης γνώσης.
+const SCORE = { base: 100, speedMax: 100, instant: 50 };
+// «Άμεση γνώση»: σωστή απάντηση μέσα στον χρόνο ανάγνωσης ερώτησης+επιλογών και λίγο ακόμη.
+const INSTANT = { baseMs: 2000, perCharMs: 30, maxShare: 0.6 };
+// Έκδοση κανόνων βαθμολογίας (Β9): γράφεται σε κάθε αποτέλεσμα. Κάθε αλλαγή σε SCORE, INSTANT ή στον τρόπο
+// υπολογισμού (pointsFor, instantLimitMs) = νέα έκδοση + γραμμή στον πίνακα του HANDBOOK §5.3α + στον αυτοέλεγχο.
+// Τα παλιά αποτελέσματα κρατούν τον αριθμό τους και δεν ξαναϋπολογίζονται ποτέ. Χωρίς πεδίο = πριν από τη v8.
+const RULES = 1;
+// Τίτλοι σωρευτικής βαθμολογίας (ελάχιστοι πόντοι)
+const RANKS = [[0, "Αρχάριος", "Beginner"], [5000, "Μαθητευόμενος", "Apprentice"], [20000, "Γνώστης", "Connoisseur"],
+               [50000, "Σοφός", "Sage"], [100000, "Ολύμπιος", "Olympian"]];
+
+const UI = {
+  el: {
+    title: "Το κουίζ της ημέρας",
+    rules: s => `10 ερωτήσεις, 4 επιλογές, ${s} δευτερόλεπτα η καθεμία. Όσο πιο γρήγορα απαντάς σωστά, τόσο περισσότεροι πόντοι· ⚡ για άμεση γνώση. Ίδιες ερωτήσεις για όλους, μία φορά τη μέρα σε κάθε επίπεδο.`,
+    level: "Επίπεδο",
+    play: "Παίξε το σημερινό", playedToday: "Δες το σημερινό αποτέλεσμα",
+    resume: (i, n) => `Συνέχισε το σημερινό (ερώτηση ${i}/${n})`,
+    practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
+    relaxed: "Χαλαρή εξάσκηση (χωρίς χρόνο)", relaxedScore: "Χαλαρή εξάσκηση", noTimer: "χωρίς χρόνο",
+    relaxedNote: (c, n) => `${c} σωστές από ${n} · χωρίς χρονόμετρο και χωρίς πόντους`, q: "Ερώτηση", s: "δ",
+    practiceLeft: n => n ? `Εξάσκηση: ${n} ερωτήσεις που δεν έχεις δει ακόμη σε αυτό το επίπεδο.`
+      : "Έχεις δει όλες τις ερωτήσεις εξάσκησης αυτού του επιπέδου. Νέες έρχονται με κάθε ενημέρωση και κάθε μέρα που περνά.",
+    correct: "Σωστά!", instantHit: `⚡ Άμεση γνώση! +${SCORE.instant}`, wrong: "Λάθος", timeout: "Τέλος χρόνου",
+    left: "Βγήκες από την εφαρμογή — η ερώτηση ακυρώθηκε",
+    daily: "Σημερινό σκορ", practiceScore: "Σκορ εξάσκησης",
+    correctOf: (c, n) => `${c} σωστές από ${n}`,
+    instantOf: (i, c) => c ? `⚡ Άμεση γνώση: ${i} από ${c} σωστές (${Math.round(100 * i / c)}%)` : "",
+    legend: "⚡ άμεση γνώση · 🟩 σωστό με σκέψη · 🟥 λάθος · ⬜ χρόνος · ⬛ έξοδος",
+    fair: "Έντιμο παιχνίδι ✓", unfair: n => n === 1 ? "1 έξοδος από την εφαρμογή" : `${n} έξοδοι από την εφαρμογή`,
+    played: "Ημέρες", streak: "Σερί", best: "Καλύτερο", total: "Σύνολο",
+    share: "Κοινοποίηση", copied: "Αντιγράφηκε στο πρόχειρο",
+    next: t => `Νέο κουίζ σε ${t}`,
+    offSchedule: "Το πρόγραμμα ημερών έχει τελειώσει για αυτό το επίπεδο· οι ερωτήσεις μπορεί να επαναλαμβάνονται.",
+    settings: "Ρυθμίσεις", display: "Εμφάνιση", back: "Επιστροφή",
+    modes: { auto: "Αυτόματο", sun: "Φως ήλιου", saver: "Μπαταρία" },
+    modeHint: {
+      auto: "Ακολουθεί το θέμα του κινητού και περνά σε εξοικονόμηση όταν η μπαταρία πέσει κάτω από 20%.",
+      sun: "Μέγιστη αντίθεση και μεγαλύτερα γράμματα για ανάγνωση σε δυνατό φως.",
+      saver: "Μαύρο φόντο (σβηστά pixel σε οθόνες OLED), χωρίς κινήσεις, σπανιότερη ανανέωση χρονομέτρου."
+    },
+    scoringTitle: "Βαθμολογία",
+    scoringText: `Σωστή απάντηση: ${SCORE.base} πόντοι + έως ${SCORE.speedMax} για ταχύτητα. ⚡ Άμεση γνώση (+${SCORE.instant}): όταν απαντάς σωστά μέσα στον χρόνο που χρειάζεται απλώς για να διαβάσεις ερώτηση και επιλογές (2 δευτ. + 30 χιλιοστά ανά χαρακτήρα). Η σωστή απάντηση μετά από σκέψη ή σύγκριση μετράει, αλλά λιγότερο. Η σωρευτική βαθμολογία αθροίζει τα ημερήσια κουίζ· η εξάσκηση δεν μετράει. Κανόνες βαθμολογίας: έκδοση ${RULES}· κάθε αποτέλεσμα κρατά την έκδοση με την οποία παίχτηκε.`,
+    rulesOf: v => `Κανόνες βαθμολογίας: έκδοση ${v}`,
+    questions: "Ερωτήσεις",
+    bankInfo: (n, v, ends) => `Τράπεζα έκδοση ${v}: ${n} ερωτήσεις. Πρόγραμμα έως: ${ends}.`,
+    refresh: "Έλεγχος για νέες ερωτήσεις",
+    refreshing: "Λήψη της νέας έκδοσης…", refreshFail: "Δεν υπάρχει σύνδεση· δοκίμασε αργότερα.",
+    fairTitle: "Δίκαιο παιχνίδι",
+    fairText: "Αν φύγεις από την εφαρμογή ενώ τρέχει μια ερώτηση (π.χ. για να ρωτήσεις μια ΤΝ), η ερώτηση ακυρώνεται. Αν κλείσεις την εφαρμογή στη μέση του ημερήσιου, συνεχίζεις από εκεί που έμεινες· η ερώτηση που έτρεχε μετρά ως έξοδος. Το κείμενο δεν αντιγράφεται και ο χρόνος είναι σύντομος. Δεν υπάρχουν χρηματικά έπαθλα.",
+    footer: "Δωρεάν παιχνίδι γνώσεων χωρίς χρηματικά έπαθλα. Παίκτες και αποτελέσματα μένουν μόνο σε αυτή τη συσκευή.",
+    date: d => d.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long" }),
+    keys: ["Α", "Β", "Γ", "Δ"],
+    welcomeTitle: "Καλώς ήρθες",
+    welcomeText: "Διάλεξε ένα ψευδώνυμο. Μένει μόνο σε αυτή τη συσκευή· δεν χρειάζεται email ή άλλα προσωπικά στοιχεία.",
+    nickname: "Ψευδώνυμο", pinOptional: "PIN (προαιρετικό, 4–8 ψηφία)",
+    createPlayer: "Δημιουργία παίκτη", haveCode: "Έχω κωδικό μεταφοράς από άλλη συσκευή",
+    playersTitle: "Παίκτες",
+    playersText: "Κάθε παίκτης έχει δική του βαθμολογία, σερί και ιστορικό. Η λίστα είναι και η κατάταξη αυτής της συσκευής.",
+    login: "Σύνδεση", logout: "Αποσύνδεση", newPlayer: "+ Νέος παίκτης", select: "Επιλογή", current: "Τρέχων",
+    del: "Διαγραφή", confirmDel: n => `Οριστική διαγραφή του «${n}»; Πάτησε ξανά «Διαγραφή» για επιβεβαίωση.`,
+    pinFor: n => `PIN για «${n}»`, pinWrong: "Λάθος PIN.", pinShort: "Το PIN πρέπει να έχει 4–8 ψηφία.",
+    pinNoCrypto: "Αυτός ο browser δεν υποστηρίζει PIN· ο παίκτης δημιουργείται χωρίς PIN.",
+    nameNeeded: "Γράψε ένα ψευδώνυμο.", nameTaken: "Υπάρχει ήδη παίκτης με αυτό το όνομα.",
+    transferTitle: "Μεταφορά σε άλλη συσκευή",
+    transferText: "Ο κωδικός περιέχει τον τρέχοντα παίκτη (όνομα, βαθμολογία, ιστορικό). Αντέγραψέ τον και επικόλλησέ τον στην άλλη συσκευή.",
+    makeCode: "Δημιουργία κωδικού μεταφοράς", pasteCode: "Επικόλληση κωδικού", importCode: "Εισαγωγή παίκτη",
+    codeCopied: "Ο κωδικός αντιγράφηκε. Επικόλλησέ τον στην άλλη συσκευή.", codeShown: "Αντέγραψε τον κωδικό από το πλαίσιο.",
+    codeBad: "Ο κωδικός δεν είναι έγκυρος.", imported: n => `Ο παίκτης «${n}» προστέθηκε.`,
+    pts: n => `${n.toLocaleString("el-GR")} πόντοι`, rankOf: r => r,
+    totalLine: (t, r, i) => `${t.toLocaleString("el-GR")} πόντοι · ${r} · ⚡ ${i}`,
+    nextQ: "Επόμενη ερώτηση →", toResult: "Αποτέλεσμα →",
+    source: l => l === "el" ? "Πηγή: Βικιπαίδεια" : "Πηγή: Wikipedia (αγγλικά)",
+    reviewTitle: "Οι απαντήσεις του γύρου", answerIs: "Σωστή απάντηση:",
+    shareCard: "Κάρτα εικόνας", cardSave: "Αποθήκευση εικόνας", cardShown: "Η κάρτα είναι έτοιμη· αποθήκευσέ την ή κοινοποίησέ την από εδώ.",
+    cardCorrect: (c, n) => `${c}/${n} σωστές`, cardStreak: n => `Σερί ${n}`,
+    profileBtn: "Στατιστικά και επιτεύγματα",
+    profileSummary: (t, r, d, s) => `${t.toLocaleString("el-GR")} πόντοι · ${r} · ${d} ${d === 1 ? "ημερήσιο κουίζ" : "ημερήσια κουίζ"} · ${s} ερωτήσεις έχεις δει`,
+    catTitle: "Ανά κατηγορία", catText: "Όλες οι απαντήσεις (ημερήσια και εξάσκηση). Η μπάρα δείχνει το ποσοστό επιτυχίας.",
+    catLine: (n, ok, f) => n ? `${ok}/${n} σωστές (${Math.round(100 * ok / n)}%) · ⚡ ${f}` : "καμία ακόμη",
+    achTitle: (u, n) => `Επιτεύγματα ${u}/${n}`, newAch: "Νέο επίτευγμα:", locked: "Κλειδωμένο",
+    kpiTitle: "Δείκτες (ημερήσια κουίζ)", kpiKnow: "Γνώση", kpiSpeed: "Ταχύτητα (διάμεσος)", kpiMean: "Μέσος χρόνος", kpiInstant: "⚡ των σωστών",
+    levelTitle: "Ανά επίπεδο", allLevels: "Σύνολο", lvlCols: ["Επίπεδο", "Ημερ.", "Γνώση", "⚡", "Διάμεσος", "Μ. σκορ"],
+    kpiDef: "Γνώση = σωστές ÷ ερωτήσεις των ημερήσιων κουίζ· λήξη χρόνου και έξοδος από την εφαρμογή μετρούν ως λάθος. Ταχύτητα = διάμεσος χρόνος απάντησης (μισές απαντήσεις πιο γρήγορες, μισές πιο αργές)· μετρούν μόνο οι απαντήσεις που δόθηκαν, από τη v11 και μετά. ⚡ = ποσοστό των σωστών με άμεση γνώση. Η εξάσκηση και οι προκλήσεις δεν μετρούν στους δείκτες.",
+    histTitle: "Ιστορικό παιχνιδιών", histNote: "Ημερήσια κουίζ και προκλήσεις, νεότερα πρώτα (έως 30). Πάτησε για ανασκόπηση. Η εξάσκηση δεν καταγράφεται.",
+    histEmpty: "Δεν υπάρχουν ακόμη παιχνίδια.", histDaily: "Ημερήσιο", histChallenge: "Πρόκληση",
+    challenge: "Πρόκληση φίλου", chTitle: "Πρόκληση", challengeScore: "Σκορ πρόκλησης",
+    chNone: "Δεν μένουν αρκετές ερωτήσεις που δεν έχεις δει για νέα πρόκληση σε αυτό το επίπεδο.",
+    haveChallenge: "Έχω κωδικό ή σύνδεσμο πρόκλησης", pasteChallenge: "Επικόλληση κωδικού ή μηνύματος πρόκλησης",
+    openChallenge: "Άνοιγμα πρόκλησης",
+    chFrom: (l, s, c, n, i) => `Σε προκαλούν στο επίπεδο «${l}»: ${s.toLocaleString("el-GR")} πόντοι, ${c}/${n} σωστές, ⚡ ${i}.`,
+    chRules: "Ίδιες 10 ερωτήσεις, ίδια σειρά επιλογών, ίδιος χρόνος. Μία προσπάθεια· δεν μετράει στη σωρευτική βαθμολογία. Το αποτέλεσμα του φίλου το δηλώνει η δική του συσκευή.",
+    chSeen: n => `Έχεις ήδη δει ${n} από τις 10 ερωτήσεις.`,
+    chOtherRules: v => `Ο φίλος έπαιξε με κανόνες βαθμολογίας έκδοσης ${v}· η σύγκριση είναι ενδεικτική.`,
+    chAccept: "Δέξου την πρόκληση",
+    chBad: { format: "Ο κωδικός πρόκλησης δεν είναι έγκυρος.",
+             bank: "Η πρόκληση έχει ερωτήσεις που δεν υπάρχουν σε αυτή την έκδοση· πάτησε «Έλεγχος για νέες ερωτήσεις» στις Ρυθμίσεις.",
+             future: "Η πρόκληση περιέχει ερωτήσεις πρόσφατου ή μελλοντικού ημερήσιου κουίζ και δεν γίνεται δεκτή." },
+    sendChallenge: "Στείλε την πρόκληση", sendReply: "Στείλε την απάντησή σου",
+    chSendHint: "Στείλε το μήνυμα σε φίλο: θα παίξει τις ίδιες 10 ερωτήσεις και θα δει τη σύγκριση. Δεν περιέχει το ψευδώνυμό σου.",
+    vsLine: (w, s, c, n, i) => `${w}: ${s.toLocaleString("el-GR")} πόντοι · ${c}/${n} · ⚡ ${i}`, me: "Εσύ", them: "Φίλος",
+    win: "Κέρδισες! 🏆", lose: "Σε πέρασε ο φίλος.", tie: "Ισοπαλία.",
+    beatMe: "Μπορείς να με περάσεις;", codeLabel: "Κωδικός:"
+  },
+  en: {
+    title: "Today's quiz",
+    rules: s => `10 questions, 4 choices, ${s} seconds each. The faster you answer correctly, the more points you get; ⚡ for instant knowledge. Same questions for everyone, once a day per level.`,
+    level: "Level",
+    play: "Play today's quiz", playedToday: "See today's result",
+    resume: (i, n) => `Resume today's quiz (question ${i}/${n})`,
+    practice: "Free practice", home: "Home",
+    relaxed: "Relaxed practice (no timer)", relaxedScore: "Relaxed practice", noTimer: "no timer",
+    relaxedNote: (c, n) => `${c} of ${n} correct · no timer and no points`, q: "Question", s: "s",
+    practiceLeft: n => n ? `Practice: ${n} questions you have not seen yet at this level.`
+      : "You have seen every practice question at this level. New ones arrive with each update and each day that passes.",
+    correct: "Correct!", instantHit: `⚡ Instant knowledge! +${SCORE.instant}`, wrong: "Wrong", timeout: "Time's up",
+    left: "You left the app — question voided",
+    daily: "Today's score", practiceScore: "Practice score",
+    correctOf: (c, n) => `${c} of ${n} correct`,
+    instantOf: (i, c) => c ? `⚡ Instant knowledge: ${i} of ${c} correct (${Math.round(100 * i / c)}%)` : "",
+    legend: "⚡ instant · 🟩 correct after thought · 🟥 wrong · ⬜ time · ⬛ left app",
+    fair: "Fair play ✓", unfair: n => n === 1 ? "Left the app once" : `Left the app ${n} times`,
+    played: "Days", streak: "Streak", best: "Best", total: "Total",
+    share: "Share", copied: "Copied to clipboard",
+    next: t => `New quiz in ${t}`,
+    offSchedule: "The daily schedule has run out for this level; questions may repeat.",
+    settings: "Settings", display: "Display", back: "Back",
+    modes: { auto: "Auto", sun: "Sunlight", saver: "Battery" },
+    modeHint: {
+      auto: "Follows your phone's theme and switches to battery saving below 20% charge.",
+      sun: "Maximum contrast and larger text for reading in bright light.",
+      saver: "Pure black background (pixels off on OLED screens), no animations, slower timer refresh."
+    },
+    scoringTitle: "Scoring",
+    scoringText: `Correct answer: ${SCORE.base} points + up to ${SCORE.speedMax} for speed. ⚡ Instant knowledge (+${SCORE.instant}): a correct answer within the time it takes just to read the question and options (2 s + 30 ms per character). A correct answer after thought or comparison counts, but less. The cumulative score adds up daily quizzes; practice does not count. Scoring rules: version ${RULES}; every result keeps the version it was played under.`,
+    rulesOf: v => `Scoring rules: version ${v}`,
+    questions: "Questions",
+    bankInfo: (n, v, ends) => `Question bank version ${v}: ${n} questions. Schedule until: ${ends}.`,
+    refresh: "Check for new questions",
+    refreshing: "Fetching the new version…", refreshFail: "No connection; try again later.",
+    fairTitle: "Fair play",
+    fairText: "If you leave the app while a question is running (e.g. to ask an AI), that question is voided. If you close the app in the middle of the daily quiz, you resume where you left off; the question that was running counts as leaving the app. The text cannot be copied and the timer is short. There are no cash prizes.",
+    footer: "A free knowledge game with no cash prizes. Players and results stay on this device only.",
+    date: d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+    keys: ["A", "B", "C", "D"],
+    welcomeTitle: "Welcome",
+    welcomeText: "Choose a nickname. It stays on this device only; no email or other personal data is needed.",
+    nickname: "Nickname", pinOptional: "PIN (optional, 4–8 digits)",
+    createPlayer: "Create player", haveCode: "I have a transfer code from another device",
+    playersTitle: "Players",
+    playersText: "Each player has their own score, streak and history. The list is also this device's leaderboard.",
+    login: "Log in", logout: "Log out", newPlayer: "+ New player", select: "Select", current: "Current",
+    del: "Delete", confirmDel: n => `Permanently delete "${n}"? Press "Delete" again to confirm.`,
+    pinFor: n => `PIN for "${n}"`, pinWrong: "Wrong PIN.", pinShort: "The PIN must have 4–8 digits.",
+    pinNoCrypto: "This browser cannot use a PIN; the player is created without one.",
+    nameNeeded: "Enter a nickname.", nameTaken: "A player with this name already exists.",
+    transferTitle: "Move to another device",
+    transferText: "The code contains the current player (name, score, history). Copy it and paste it on the other device.",
+    makeCode: "Create transfer code", pasteCode: "Paste code", importCode: "Import player",
+    codeCopied: "Code copied. Paste it on the other device.", codeShown: "Copy the code from the box.",
+    codeBad: "This code is not valid.", imported: n => `Player "${n}" added.`,
+    pts: n => `${n.toLocaleString("en-GB")} points`, rankOf: r => r,
+    totalLine: (t, r, i) => `${t.toLocaleString("en-GB")} points · ${r} · ⚡ ${i}`,
+    nextQ: "Next question →", toResult: "Result →",
+    source: l => l === "en" ? "Source: Wikipedia" : "Source: Wikipedia (Greek)",
+    reviewTitle: "This round's answers", answerIs: "Correct answer:",
+    shareCard: "Image card", cardSave: "Save image", cardShown: "Your card is ready; save or share it from here.",
+    cardCorrect: (c, n) => `${c}/${n} correct`, cardStreak: n => `Streak ${n}`,
+    profileBtn: "Stats and achievements",
+    profileSummary: (t, r, d, s) => `${t.toLocaleString("en-GB")} points · ${r} · ${d} daily ${d === 1 ? "quiz" : "quizzes"} · ${s} questions seen`,
+    catTitle: "By category", catText: "All answers (daily and practice). The bar shows your success rate.",
+    catLine: (n, ok, f) => n ? `${ok}/${n} correct (${Math.round(100 * ok / n)}%) · ⚡ ${f}` : "none yet",
+    achTitle: (u, n) => `Achievements ${u}/${n}`, newAch: "New achievement:", locked: "Locked",
+    kpiTitle: "Indicators (daily quizzes)", kpiKnow: "Knowledge", kpiSpeed: "Speed (median)", kpiMean: "Mean time", kpiInstant: "⚡ of correct",
+    levelTitle: "By level", allLevels: "All", lvlCols: ["Level", "Daily", "Knowl.", "⚡", "Median", "Avg score"],
+    kpiDef: "Knowledge = correct ÷ questions in daily quizzes; time-outs and leaving the app count as wrong. Speed = median answer time (half of the answers faster, half slower); only answers actually given count, from v11 onwards. ⚡ = share of correct answers given with instant knowledge. Practice and challenges do not count towards the indicators.",
+    histTitle: "Game history", histNote: "Daily quizzes and challenges, newest first (up to 30). Tap to review. Practice is not recorded.",
+    histEmpty: "No games yet.", histDaily: "Daily", histChallenge: "Challenge",
+    challenge: "Challenge a friend", chTitle: "Challenge", challengeScore: "Challenge score",
+    chNone: "Not enough questions you have not seen are left for a new challenge at this level.",
+    haveChallenge: "I have a challenge code or link", pasteChallenge: "Paste the challenge code or message",
+    openChallenge: "Open challenge",
+    chFrom: (l, s, c, n, i) => `You are challenged at level "${l}": ${s.toLocaleString("en-GB")} points, ${c}/${n} correct, ⚡ ${i}.`,
+    chRules: "Same 10 questions, same order of choices, same time. One attempt; it does not count towards the cumulative score. Your friend's result is reported by their own device.",
+    chSeen: n => `You have already seen ${n} of the 10 questions.`,
+    chOtherRules: v => `Your friend played under scoring rules version ${v}; the comparison is indicative.`,
+    chAccept: "Accept the challenge",
+    chBad: { format: "This challenge code is not valid.",
+             bank: "This challenge has questions missing from this version; press \"Check for new questions\" in Settings.",
+             future: "This challenge contains questions from a recent or future daily quiz and cannot be accepted." },
+    sendChallenge: "Send the challenge", sendReply: "Send your reply",
+    chSendHint: "Send the message to a friend: they play the same 10 questions and see the comparison. It does not contain your nickname.",
+    vsLine: (w, s, c, n, i) => `${w}: ${s.toLocaleString("en-GB")} points · ${c}/${n} · ⚡ ${i}`, me: "You", them: "Friend",
+    win: "You win! 🏆", lose: "Your friend wins.", tie: "It's a tie.",
+    beatMe: "Can you beat me?", codeLabel: "Code:"
+  }
+};
+
+// Επιτεύγματα: υπολογίζονται μόνο από τα δεδομένα του παίκτη (άρα και αναδρομικά και μετά από μεταφορά).
+// [id, εικονίδιο, όνομα EL, όνομα EN, περιγραφή EL, περιγραφή EN, έλεγχος(p)]
+const ACHIEVEMENTS = [
+  ["first", "🎯", "Πρώτο βήμα", "First step", "Ολοκλήρωσε ένα ημερήσιο κουίζ.", "Finish a daily quiz.", p => dailyList(p).length >= 1],
+  ["streak3", "🔥", "Τριήμερο", "Three in a row", "Σερί 3 ημερών σε ένα επίπεδο.", "A 3-day streak at one level.", p => bestStreak(p) >= 3],
+  ["streak7", "📅", "Εβδομάδα", "Full week", "Σερί 7 ημερών σε ένα επίπεδο.", "A 7-day streak at one level.", p => bestStreak(p) >= 7],
+  ["streak30", "🏛", "Μήνας", "Full month", "Σερί 30 ημερών σε ένα επίπεδο.", "A 30-day streak at one level.", p => bestStreak(p) >= 30],
+  ["perfect", "💯", "Δεκάρι", "Perfect ten", "10 σωστές σε ημερήσιο κουίζ.", "10 correct in a daily quiz.", p => dailyList(p).some(([, d]) => d.correct >= 10)],
+  ["allInstant", "⚡", "Κεραυνός", "Lightning", "10 × ⚡ σε ημερήσιο κουίζ.", "10 × ⚡ in a daily quiz.", p => dailyList(p).some(([, d]) => (d.instant || 0) >= 10)],
+  ["triple", "🥉", "Τρία επίπεδα", "All three levels", "Και τα 3 επίπεδα την ίδια μέρα.", "All 3 levels on the same day.",
+    p => { const by = {}; dailyList(p).forEach(([k]) => { const day = k.slice(2); by[day] = (by[day] || 0) + 1; }); return Object.values(by).some(n => n >= 3); }],
+  ["expert8", "🎓", "Ειδήμων", "True expert", "8+ σωστές στο Expert.", "8+ correct at Expert.", p => dailyList(p).some(([k, d]) => k.startsWith("3|") && d.correct >= 8)],
+  ["instant100", "✨", "Εκατό αστραπές", "Hundred flashes", "100 × ⚡ σε ημερήσια κουίζ.", "100 × ⚡ in daily quizzes.", p => totals(p).instant >= 100],
+  ["points10k", "🏆", "Δέκα χιλιάδες", "Ten thousand", "10.000 σωρευτικοί πόντοι.", "10,000 cumulative points.", p => totals(p).points >= 10000],
+  ["fair10", "🤝", "Τίμιος παίκτης", "Fair player", "10 ημερήσια χωρίς έξοδο από την εφαρμογή.", "10 daily quizzes without leaving the app.",
+    p => dailyList(p).filter(([, d]) => !d.leaves).length >= 10],
+  ["seen100", "📚", "Βιβλιοφάγος", "Bookworm", "Έχεις δει 100 ερωτήσεις.", "You have seen 100 questions.", p => (p.seen || []).length >= 100],
+  ["polymath", "🧭", "Πολυμαθής", "Polymath", "10 σωστές σε κάθε κατηγορία.", "10 correct in every category.",
+    p => Object.keys(CATEGORIES).every(c => ((p.stats || {})[c] || {}).ok >= 10)]
+];
+
+// ---------- αποθήκευση (προαιρετική: το παιχνίδι λειτουργεί και χωρίς αυτήν) ----------
+function readJSON(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch { /* ιδιωτική περιήγηση κ.λπ. */ }
+}
+function newId() {
+  return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function blankProfile(name) {
+  return { name, pin: null, level: 1, days: {}, seen: [], stats: {}, ach: {}, created: new Date().toISOString() };
+}
+// Μεταφορά από την έκδοση v2 (ένας παίκτης ανά συσκευή) στην v3 (πολλοί παίκτες).
+function migrate() {
+  const s = readJSON(STORE);
+  if (s && s.profiles) return s;
+  const old = readJSON(OLD_STORE) || {};
+  const st = { lang: old.lang || null, mode: old.mode || "auto", current: null, profiles: {} };
+  if (old.days && Object.keys(old.days).length || (old.seen && old.seen.length)) {
+    const id = newId();
+    st.profiles[id] = { ...blankProfile("Παίκτης 1"), level: old.level || 1, days: old.days || {}, seen: old.seen || [] };
+    st.current = id;
+  }
+  return st;
+}
+const state = migrate();
+if (!UI[state.lang]) state.lang = (navigator.language || "el").toLowerCase().startsWith("el") ? "el" : "en";
+if (!["auto", "sun", "saver"].includes(state.mode)) state.mode = "auto";
+const P = () => state.profiles[state.current] || null;   // τρέχων παίκτης
+let SEEN = new Set();
+function loadPlayer() {
+  const p = P();
+  SEEN = new Set(p && Array.isArray(p.seen) ? p.seen : []);
+  if (!p) return;
+  if (!LEVELS[p.level]) p.level = 1;
+  if (!p.stats || typeof p.stats !== "object") p.stats = {};
+  if (!p.ach || typeof p.ach !== "object") p.ach = {};
+  tidyLive(p);             // μισοτελειωμένα ημερήσια προηγούμενων ημερών κλείνουν εδώ
+  unlockAchievements(p);   // αναδρομικά, χωρίς ειδοποίηση (π.χ. παίκτης από παλαιότερη έκδοση)
+}
+loadPlayer();
+function markSeen(id) {
+  const p = P();
+  if (!p || SEEN.has(id)) return;
+  SEEN.add(id); p.seen = [...SEEN]; save();
+}
+const level = () => (P() ? P().level : 1);
+
+// ---------- ερωτήσεις και πρόγραμμα ----------
+const BY_ID = new Map(QUESTIONS.map(q => [q.id, q]));
+const SCHED = typeof SCHEDULE === "object" ? SCHEDULE : {};
+
+function rng(seed) { // mulberry32
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffled(arr, rand) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function todayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function dayNumber(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000);
+}
+const levelPool = lvl => QUESTIONS.filter(q => q.lvl === lvl);
+
+// Σταθερό πρόγραμμα (schedule.js): ίδιες 10 ερωτήσεις για όλους ανά ημέρα και επίπεδο.
+// Αν η ημέρα λείπει, εφεδρική ντετερμινιστική επιλογή ώστε το παιχνίδι να μη σταματά ποτέ.
+function dailySet(key, lvl) {
+  const n = dayNumber(key);
+  const ids = SCHED[lvl] && SCHED[lvl][key];
+  if (ids && ids.every(id => BY_ID.has(id))) return { questions: ids.map(id => BY_ID.get(id)), seed: n * 10 + lvl, scheduled: true };
+  const pool = shuffled(levelPool(lvl), rng(lvl * 1000 + BANK_VERSION));
+  const out = [];
+  for (let k = 0; k < ROUND; k++) out.push(pool[((n * ROUND + k) % pool.length + pool.length) % pool.length]);
+  return { questions: out, seed: n * 10 + lvl, scheduled: false };
+}
+// Εξάσκηση: μόνο το απόθεμα εξάσκησης (PRACTICE) και ερωτήσεις ημερών που έχουν ήδη περάσει,
+// ώστε να μη «φανερώνει» μελλοντικά ημερήσια κουίζ· ποτέ ερώτηση που έχει ήδη δει ο παίκτης.
+const PRACTICE_IDS = typeof PRACTICE === "object" ? PRACTICE : {};
+function practicePool(lvl) {
+  const today = todayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
+  for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => ids.add(id));
+  return [...ids].filter(id => BY_ID.has(id) && !SEEN.has(id)).map(id => BY_ID.get(id));
+}
+function practiceSet(lvl) {
+  const seed = (Math.random() * 2 ** 31) | 0;
+  return { questions: shuffled(practicePool(lvl), rng(seed)).slice(0, ROUND), seed, scheduled: true };
+}
+function scheduleEnd(lvl) {
+  const keys = Object.keys(SCHED[lvl] || {}).sort();
+  return keys.length ? keys[keys.length - 1] : "—";
+}
+
+// ---------- βαθμολογία ----------
+// Όριο «άμεσης γνώσης» για μια ερώτηση στη γλώσσα που εμφανίζεται (ms).
+function instantLimitMs(q, lang, totalMs) {
+  const chars = q[lang].join("").length;
+  return Math.min(INSTANT.baseMs + INSTANT.perCharMs * chars, INSTANT.maxShare * totalMs);
+}
+// Πόντοι μίας απάντησης: 0 αν λάθος· αλλιώς βάση + ταχύτητα + (άμεση γνώση ? μπόνους : 0).
+function pointsFor(correct, leftMs, totalMs, instant) {
+  if (!correct) return 0;
+  return SCORE.base + Math.round(SCORE.speedMax * Math.max(0, leftMs) / totalMs) + (instant ? SCORE.instant : 0);
+}
+// Σωρευτικά στοιχεία παίκτη (μόνο ημερήσια κουίζ).
+function totals(p, lvl) {
+  let points = 0, instant = 0, days = 0;
+  for (const [k, d] of Object.entries((p && p.days) || {})) {
+    if (lvl && !k.startsWith(`${lvl}|`)) continue;
+    points += d.score || 0; instant += d.instant || 0; days++;
+  }
+  return { points, instant, days };
+}
+function dailyList(p) { return Object.entries((p && p.days) || {}); }   // δήλωση function: χρειάζεται ήδη στο loadPlayer()
+// Μεγαλύτερο σερί συνεχόμενων ημερών που έπαιξε ποτέ ο παίκτης, σε οποιοδήποτε επίπεδο.
+function bestStreak(p) {
+  let best = 0;
+  for (const lvl of Object.keys(LEVELS)) {
+    const nums = dailyList(p).filter(([k]) => k.startsWith(`${lvl}|`)).map(([k]) => dayNumber(k.slice(2))).sort((a, b) => a - b);
+    let run = 0;
+    nums.forEach((n, i) => { run = i && n === nums[i - 1] + 1 ? run + 1 : 1; best = Math.max(best, run); });
+  }
+  return best;
+}
+// Ξεκλειδώνει ό,τι ικανοποιείται τώρα· επιστρέφει τα νέα (τα ήδη ξεκλείδωτα δεν χάνονται ποτέ).
+function unlockAchievements(p) {
+  if (!p) return [];
+  p.ach = p.ach || {};
+  const fresh = ACHIEVEMENTS.filter(a => !p.ach[a[0]] && a[6](p));
+  fresh.forEach(a => { p.ach[a[0]] = todayKey(); });
+  if (fresh.length) save();
+  return fresh;
+}
+// Στατιστικά ανά κατηγορία: n = απαντήσεις, ok = σωστές, fast = ⚡.
+function recordAnswer(q, ok, instant, p = P()) {
+  if (!p) return;
+  const c = (p.stats[q.cat] = p.stats[q.cat] || { n: 0, ok: 0, fast: 0 });
+  c.n++; if (ok) c.ok++; if (instant) c.fast++;
+  save();
+}
+const achName = a => state.lang === "el" ? a[2] : a[3];
+// Πηγή «en:Τίτλος» → σύνδεσμος Wikipedia.
+function sourceLink(src) {
+  const i = (src || "").indexOf(":");
+  if (i < 1) return null;
+  const lang = src.slice(0, i), title = src.slice(i + 1);
+  if (!/^(el|en)$/.test(lang) || !title) return null;
+  return { lang, url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}` };
+}
+const EX = typeof EXPLAIN === "object" ? EXPLAIN : {};
+// Γεμίζει ένα στοιχείο με εξήγηση + σύνδεσμο πηγής για την ερώτηση q (αν υπάρχουν).
+function fillExplain(textEl, linkEl, q) {
+  const e = EX[q.id];
+  textEl.textContent = e ? e[state.lang] : "";
+  const s = e && sourceLink(e.src);
+  linkEl.classList.toggle("hidden", !s);
+  if (s) { linkEl.href = s.url; linkEl.textContent = T().source(s.lang); linkEl.target = "_blank"; linkEl.rel = "noopener noreferrer"; }
+  return !!e;
+}
+function rankName(points) {
+  let r = RANKS[0];
+  for (const x of RANKS) if (points >= x[0]) r = x;
+  return state.lang === "el" ? r[1] : r[2];
+}
+
+// ---------- εμφάνιση: αυτόματο / ήλιος / μπαταρία ----------
+let lowBattery = false;
+const effectiveMode = () => state.mode === "auto" && lowBattery ? "saver" : state.mode;
+function applyMode() {
+  const m = effectiveMode();
+  document.documentElement.dataset.mode = m;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  meta.content = m === "saver" ? "#000000" : m === "sun" ? "#ffffff" : "#1f3a5f";
+}
+if (navigator.getBattery) {
+  navigator.getBattery().then(b => {
+    const check = () => { lowBattery = !b.charging && b.level <= LOW_BATTERY; applyMode(); };
+    b.addEventListener("levelchange", check); b.addEventListener("chargingchange", check); check();
+  }).catch(() => {});
+}
+
+// ---------- DOM ----------
+const $ = id => document.getElementById(id);
+const T = () => UI[state.lang];
+const seconds = () => LEVELS[run ? run.level : level()].seconds;
+
+function buildSeg(box, entries, current, onPick) {
+  box.replaceChildren();
+  entries.forEach(([value, label]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = label;
+    b.setAttribute("aria-pressed", String(String(value) === String(current)));
+    b.addEventListener("click", () => onPick(value));
+    box.append(b);
+  });
+}
+
+function applyLang() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = T()[el.dataset.t]; });
+  document.querySelectorAll("header .seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
+  $("openSettings").setAttribute("aria-label", T().settings);
+  const p = P();
+  $("openPlayers").textContent = "👤 " + (p ? p.name : T().playersTitle);
+  $("openPlayers").classList.toggle("hidden", !Object.keys(state.profiles).length);
+  $("rules").textContent = T().rules(LEVELS[level()].seconds);
+  $("dateLine").textContent = T().date(new Date());
+  const dayK = `${level()}|${todayKey()}`, live = p && p.live && p.live[dayK];
+  $("startDaily").textContent = p && p.days[dayK] ? T().playedToday
+    : live ? T().resume(Math.min(live.done + 1, live.ids.length), live.ids.length) : T().play;
+  buildSeg($("levels"), Object.entries(LEVELS).map(([k, v]) => [Number(k), v[state.lang]]), level(), lvl => {
+    if (P()) { P().level = lvl; save(); }
+    applyLang();
+  });
+  buildSeg($("modes"), Object.entries(T().modes), state.mode, m => { state.mode = m; save(); applyMode(); applyLang(); });
+  $("modeHint").textContent = T().modeHint[state.mode];
+  $("bankInfo").textContent = T().bankInfo(QUESTIONS.length, BANK_VERSION,
+    Object.keys(LEVELS).map(l => `${LEVELS[l][state.lang]} ${scheduleEnd(l)}`).join(" · "));
+  const fresh = p ? practicePool(level()).length : 0;
+  $("practiceInfo").textContent = T().practiceLeft(fresh);
+  $("startPractice").disabled = $("startRelaxed").disabled = $("again").disabled = fresh === 0;
+  const chOk = p ? challengePool(level()).length >= ROUND : false;
+  $("startChallenge").disabled = !chOk;
+  $("challengeInfo").classList.toggle("hidden", chOk || !p);
+  if (p) {
+    const t = totals(p);
+    $("homePlayer").innerHTML = ""; const b = document.createElement("b"); b.textContent = p.name; $("homePlayer").append(b);
+    $("homeTotal").textContent = T().totalLine(t.points, rankName(t.points), t.instant);
+  }
+  if (run) renderQuestion(true);
+  if (!$("result").classList.contains("hidden") && lastResult) renderResult(lastResult);
+  if (!$("players").classList.contains("hidden")) renderPlayers();
+  if (!$("profile").classList.contains("hidden")) renderProfile();
+  if (!$("challenge").classList.contains("hidden")) renderChallenge();
+}
+document.querySelectorAll("header .seg button").forEach(b => b.addEventListener("click", () => {
+  state.lang = b.dataset.lang; save(); applyLang();
+}));
+
+const SECTIONS = ["welcome", "players", "home", "settings", "profile", "challenge", "game", "result"];
+function show(id) {
+  SECTIONS.forEach(s => $(s).classList.toggle("hidden", s !== id));
+  $("openSettings").disabled = $("openPlayers").disabled = id === "game";
+}
+function goHome() {
+  if (!P()) { openWelcome(); return; }
+  if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; openChallenge(c); return; }
+  applyLang(); show("home");
+}
+
+// ---------- παίκτες: δημιουργία, σύνδεση, μεταφορά ----------
+const hasCrypto = () => !!(window.crypto && crypto.subtle && window.TextEncoder);
+async function hashPin(id, pin) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${id}:${pin}`));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+const validPin = pin => /^\d{4,8}$/.test(pin);
+const nameTaken = (name, exceptId) => Object.entries(state.profiles)
+  .some(([id, p]) => id !== exceptId && p.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+function openWelcome() {
+  $("newName").value = ""; $("newPin").value = ""; $("welcomeMsg").textContent = "";
+  $("welcomeMsg").className = "msg";
+  $("cancelCreate").classList.toggle("hidden", !Object.keys(state.profiles).length);
+  applyLang(); show("welcome");
+}
+async function createPlayer() {
+  const name = $("newName").value.trim(), pin = $("newPin").value.trim(), msg = $("welcomeMsg");
+  msg.className = "msg bad";
+  if (!name) { msg.textContent = T().nameNeeded; return; }
+  if (nameTaken(name)) { msg.textContent = T().nameTaken; return; }
+  if (pin && !validPin(pin)) { msg.textContent = T().pinShort; return; }
+  const id = newId(), p = blankProfile(name);
+  if (pin && hasCrypto()) p.pin = await hashPin(id, pin);
+  state.profiles[id] = p; state.current = id; save(); loadPlayer();
+  if (pin && !hasCrypto()) { msg.className = "msg"; msg.textContent = T().pinNoCrypto; }
+  goHome();
+}
+
+let pendingLogin = null, pendingDelete = null;
+function renderPlayers() {
+  const list = $("playerList");
+  list.replaceChildren();
+  const ranked = Object.entries(state.profiles).sort((a, b) => totals(b[1]).points - totals(a[1]).points);
+  ranked.forEach(([id, p], i) => {
+    const t = totals(p);
+    const card = document.createElement("div"); card.className = "player" + (id === state.current ? " current" : "");
+    const top = document.createElement("div"); top.className = "top";
+    const nm = document.createElement("span"); nm.className = "name"; nm.textContent = `${i + 1}. ${p.pin ? "🔒 " : ""}${p.name}`;
+    const pts = document.createElement("span"); pts.className = "pts"; pts.textContent = `${T().pts(t.points)} · ⚡ ${t.instant}`;
+    top.append(nm, pts);
+    const row = document.createElement("div"); row.className = "row";
+    const sel = document.createElement("button"); sel.type = "button"; sel.className = "link";
+    sel.textContent = id === state.current ? T().current : T().select;
+    sel.disabled = id === state.current;
+    sel.addEventListener("click", () => selectPlayer(id));
+    const del = document.createElement("button"); del.type = "button"; del.className = "link danger"; del.textContent = T().del;
+    del.addEventListener("click", () => deletePlayer(id));
+    row.append(sel, del);
+    card.append(top, row);
+    list.append(card);
+  });
+}
+function openPlayers() {
+  pendingLogin = pendingDelete = null;
+  $("pinBox").classList.add("hidden"); $("playersMsg").textContent = ""; $("playersMsg").className = "msg";
+  $("codeOut").hidden = true; $("importBox").classList.add("hidden");
+  $("logout").classList.toggle("hidden", !P());
+  $("makeCode").disabled = !P();
+  renderPlayers(); applyLang(); show("players");
+}
+function selectPlayer(id) {
+  const p = state.profiles[id];
+  if (!p) return;
+  if (p.pin) {
+    pendingLogin = id;
+    $("pinLabel").textContent = T().pinFor(p.name);
+    $("pinInput").value = ""; $("pinBox").classList.remove("hidden"); $("pinInput").focus();
+    return;
+  }
+  state.current = id; save(); loadPlayer(); goHome();
+}
+async function confirmPin() {
+  const id = pendingLogin, p = state.profiles[id];
+  if (!p) return;
+  const ok = hasCrypto() && await hashPin(id, $("pinInput").value.trim()) === p.pin;
+  if (!ok) { $("playersMsg").className = "msg bad"; $("playersMsg").textContent = T().pinWrong; return; }
+  pendingLogin = null; state.current = id; save(); loadPlayer(); goHome();
+}
+function deletePlayer(id) {
+  const p = state.profiles[id];
+  if (!p) return;
+  if (pendingDelete !== id) {   // επιβεβαίωση μέσα στη σελίδα (χωρίς confirm(), που μπλοκάρεται σε ορισμένα περιβάλλοντα)
+    pendingDelete = id;
+    $("playersMsg").className = "msg bad"; $("playersMsg").textContent = T().confirmDel(p.name);
+    return;
+  }
+  delete state.profiles[id]; pendingDelete = null;
+  if (state.current === id) { state.current = null; loadPlayer(); }
+  save();
+  if (!Object.keys(state.profiles).length) { openWelcome(); return; }
+  openPlayers();
+}
+function logout() { state.current = null; save(); loadPlayer(); openPlayers(); }
+
+// Κωδικός μεταφοράς: «FC1:» + base64(JSON). Περιέχει μόνο ψευδώνυμο, hash PIN, βαθμολογίες και ιστορικό.
+function toB64(str) {
+  let bin = "";
+  for (const b of new TextEncoder().encode(str)) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0))); }
+function exportCode(id = state.current) {
+  const p = state.profiles[id];
+  return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, created: p.created }));
+}
+// Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
+function cleanStats(s) {
+  const out = {};
+  for (const [c, v] of Object.entries(s && typeof s === "object" ? s : {})) {
+    if (CATEGORIES[c] && v && [v.n, v.ok, v.fast].every(x => Number.isInteger(x) && x >= 0)) out[c] = { n: v.n, ok: v.ok, fast: v.fast };
+  }
+  return out;
+}
+function cleanAch(a) {
+  const ids = new Set(ACHIEVEMENTS.map(x => x[0])), out = {};
+  for (const [k, v] of Object.entries(a && typeof a === "object" ? a : {})) if (ids.has(k) && /^\d{4}-\d{2}-\d{2}$/.test(v)) out[k] = v;
+  return out;
+}
+// Μισοτελειωμένο ημερήσιο (από v7): μεταφέρεται κι αυτό, ώστε ο κωδικός να μη δίνει δεύτερη ευκαιρία στις ίδιες ερωτήσεις.
+function cleanLive(l) {
+  const out = {}, nat = x => Number.isInteger(x) && x >= 0;
+  for (const [k, v] of Object.entries(l && typeof l === "object" ? l : {})) {
+    if (!/^[123]\|\d{4}-\d{2}-\d{2}$/.test(k) || !v || typeof v !== "object") continue;
+    if (!Array.isArray(v.ids) || !v.ids.length || !v.ids.every(Number.isInteger)) continue;
+    if (!Array.isArray(v.orders) || v.orders.length !== v.ids.length
+        || !v.orders.every(o => Array.isArray(o) && o.every(Number.isInteger) && o.slice().sort().join() === "0,1,2,3")) continue;
+    if (!Array.isArray(v.grid) || !Array.isArray(v.times) || v.grid.length !== v.done || !nat(v.done) || v.done > v.ids.length) continue;
+    if (![v.score, v.correct, v.instant, v.leaves].every(nat)) continue;
+    out[k] = { ids: v.ids, orders: v.orders, done: v.done, pending: !!v.pending && v.done < v.ids.length,
+      score: v.score, correct: v.correct, instant: v.instant, grid: v.grid.map(String), leaves: v.leaves,
+      times: v.times.filter(Number.isFinite), scheduled: v.scheduled !== false,
+      rules: Number.isInteger(v.rules) && v.rules >= 1 ? v.rules : 1 };
+  }
+  return out;
+}
+function importCode(code) {
+  const m = /^FC1:([A-Za-z0-9+/=\s]+)$/.exec(code.trim());
+  if (!m) throw new Error("format");
+  const d = JSON.parse(fromB64(m[1].replace(/\s+/g, "")));
+  if (d.v !== 1 || typeof d.name !== "string" || !d.name.trim() || typeof d.days !== "object" || !Array.isArray(d.seen)) throw new Error("data");
+  for (const [k, v] of Object.entries(d.days)) {
+    if (!/^[123]\|\d{4}-\d{2}-\d{2}$/.test(k) || typeof v !== "object" || typeof v.score !== "number") throw new Error("days");
+    if (v.rules !== undefined && !(Number.isInteger(v.rules) && v.rules >= 1)) throw new Error("rules");
+  }
+  // Το hash του PIN είναι δεμένο με το αρχικό id, οπότε το κρατάμε όταν είναι ελεύθερο.
+  const id = d.id && /^p[a-z0-9]+$/.test(d.id) && !state.profiles[d.id] ? d.id : newId();
+  let name = d.name.trim().slice(0, 20), n = 2;
+  while (nameTaken(name)) name = `${d.name.trim().slice(0, 16)} (${n++})`;
+  state.profiles[id] = { name, pin: id === d.id && typeof d.pin === "string" ? d.pin : null,
+    level: LEVELS[d.level] ? d.level : 1, days: d.days, seen: d.seen.filter(Number.isInteger),
+    stats: cleanStats(d.stats), ach: cleanAch(d.ach), created: d.created || new Date().toISOString() };
+  const live = cleanLive(d.live);
+  if (Object.keys(live).length) state.profiles[id].live = live;
+  save();
+  return state.profiles[id].name;
+}
+
+// ---------- ροή παιχνιδιού ----------
+let run = null, lastResult = null, timerId = null;
+
+function start(mode) {
+  const p = P();
+  if (!p) { openWelcome(); return; }
+  const key = todayKey(), lvl = level(), saved = p.days[`${lvl}|${key}`];
+  if (mode === "daily" && saved) { renderResult({ mode, key, level: lvl, ...saved }); return; }
+  const live = mode === "daily" && p.live && p.live[`${lvl}|${key}`];
+  if (live) { resumeDaily(key, lvl, live); return; }
+  const set = mode === "daily" ? dailySet(key, lvl) : practiceSet(lvl);
+  if (!set.questions.length) { goHome(); return; } // δεν υπάρχουν αθέατες ερωτήσεις εξάσκησης
+  const rand = rng(set.seed * 7919);
+  run = {
+    mode, key, level: lvl, rules: mode === "relaxed" ? null : RULES,   // χαλαρή εξάσκηση: χωρίς βαθμολογία
+    i: 0, score: 0, correct: 0, instant: 0, grid: [], leaves: 0, times: [],
+    scheduled: set.scheduled,
+    items: set.questions.map(q => ({ q, order: shuffled([0, 1, 2, 3], rand) })),
+    answered: false, deadline: 0, shownAt: 0
+  };
+  show("game");
+  nextQuestion();
+}
+
+// ---------- πρόκληση φίλου (Β1) ----------
+// Ο κωδικός περιέχει μόνο: επίπεδο, σπόρο σειράς επιλογών, τα 10 id και το αποτέλεσμα του αποστολέα (χωρίς ψευδώνυμο):
+//   C1-<επίπεδο>-<σπόρος b36>-<10 id b36 με «.»>-<σκορ>-<σωστές>-<⚡>-<πλέγμα 10 ψηφία>-<έκδοση κανόνων>
+// Οι ερωτήσεις έρχονται από το απόθεμα εξάσκησης και από ημερήσια πριν από χθες, ώστε η πρόκληση να μη «χαλά»
+// το σημερινό ή μελλοντικό ημερήσιο κανενός (ούτε σε άλλη ζώνη ώρας). Μία προσπάθεια ανά πρόκληση και παίκτη.
+const GRID_MARKS = ["⬛", "⬜", "🟥", "🟩", "⚡"];   // ψηφίο του κωδικού = θέση στον πίνακα
+const CHALLENGE_KEEP = 50;                          // πόσες προκλήσεις κρατά κάθε παίκτης
+let pendingChallenge = null;                        // κωδικός από σύνδεσμο (#c=…) που περιμένει παίκτη
+function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return todayKey(d); }
+function recentDailyIds(lvl) {
+  const from = yesterdayKey(), ids = new Set();
+  for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day >= from) list.forEach(id => ids.add(id));
+  return ids;
+}
+function challengePool(lvl) {
+  const before = yesterdayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
+  for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < before) list.forEach(id => ids.add(id));
+  return [...ids].filter(id => BY_ID.has(id) && !SEEN.has(id)).map(id => BY_ID.get(id));
+}
+const challengeId = (lvl, seed, ids) => `${lvl}-${seed.toString(36)}-${ids.map(i => i.toString(36)).join(".")}`;
+function challengeCode(c, r) {
+  const grid = Array.from(r.grid).map(g => Math.max(0, GRID_MARKS.indexOf(g))).join("");
+  return `C1-${challengeId(c.lvl, c.seed, c.ids)}-${r.score}-${r.correct}-${r.instant}-${grid}-${r.rules}`;
+}
+// Δέχεται σκέτο κωδικό, σύνδεσμο ή ολόκληρο το μήνυμα κοινοποίησης. Σφάλματα: format, bank, future.
+function parseChallenge(text) {
+  const raw = (String(text).match(/C1-[0-9a-z.\-]+/) || [""])[0];
+  const m = /^C1-([123])-([0-9a-z]{1,7})-([0-9a-z]{1,6}(?:\.[0-9a-z]{1,6}){9})-(\d{1,5})-(\d{1,2})-(\d{1,2})-([0-4]{10})-(\d{1,3})$/.exec(raw);
+  if (!m) throw new Error("format");
+  const lvl = Number(m[1]), seed = parseInt(m[2], 36), ids = m[3].split(".").map(s => parseInt(s, 36)), digits = Array.from(m[7]);
+  const from = { score: Number(m[4]), correct: Number(m[5]), instant: Number(m[6]), grid: digits.map(d => GRID_MARKS[d]).join(""), rules: Number(m[8]) };
+  if (new Set(ids).size !== ROUND || from.rules < 1 || seed > 2 ** 31
+      || from.correct !== digits.filter(d => d >= "3").length || from.instant !== digits.filter(d => d === "4").length) throw new Error("format");
+  if (ids.some(id => !BY_ID.has(id))) throw new Error("bank");
+  if (ids.some(id => BY_ID.get(id).lvl !== lvl)) throw new Error("format");
+  const recent = recentDailyIds(lvl);
+  if (ids.some(id => recent.has(id))) throw new Error("future");
+  return { lvl, seed, ids, from };
+}
+// spec = null: νέα πρόκληση από τον τρέχοντα παίκτη· αλλιώς αποδοχή πρόκλησης από κωδικό.
+function startChallenge(spec) {
+  const p = P();
+  if (!p) { openWelcome(); return; }
+  let c = spec;
+  if (!c) {
+    const lvl = level(), seed = (Math.random() * 2 ** 31) | 0, pool = challengePool(lvl);
+    if (pool.length < ROUND) { goHome(); return; }
+    c = { lvl, seed, ids: shuffled(pool, rng(seed)).slice(0, ROUND).map(q => q.id), from: null };
+  }
+  const rand = rng(c.seed * 7919);
+  run = {
+    mode: "challenge", key: todayKey(), level: c.lvl, rules: RULES, i: 0, score: 0, correct: 0, instant: 0, grid: [], leaves: 0, times: [],
+    scheduled: true, items: c.ids.map(id => ({ q: BY_ID.get(id), order: shuffled([0, 1, 2, 3], rand) })),
+    answered: false, deadline: 0, shownAt: 0, challenge: { ...c, cid: challengeId(c.lvl, c.seed, c.ids) }
+  };
+  show("game");
+  nextQuestion();
+}
+// Η προσπάθεια γράφεται σε κάθε βήμα (όπως το ημερήσιο, Β10): αν η εφαρμογή κλείσει, δεν ξαναπαίζεται.
+function syncChallenge(p) {
+  const c = run.challenge;
+  p.challenges = p.challenges || {};
+  p.challenges[c.cid] = { lvl: c.lvl, seed: c.seed, ids: c.ids, score: run.score, correct: run.correct, instant: run.instant,
+    grid: run.grid.join(""), leaves: run.leaves, pending: !run.answered, rules: run.rules, done: false, at: new Date().toISOString() };
+  const keys = Object.keys(p.challenges);
+  if (keys.length > CHALLENGE_KEEP) {
+    keys.sort((a, b) => p.challenges[a].at < p.challenges[b].at ? -1 : 1).slice(0, keys.length - CHALLENGE_KEEP)
+      .forEach(k => delete p.challenges[k]);
+  }
+}
+// Μισοτελειωμένη προσπάθεια: η ερώτηση που έτρεχε μετρά ως έξοδος, οι υπόλοιπες ⬛.
+function closeChallenge(p, cid) {
+  const s = p.challenges[cid];
+  if (s.done) return s;
+  let grid = Array.from(s.grid);
+  if (s.pending) {
+    const q = BY_ID.get(s.ids[grid.length]);
+    if (q) recordAnswer(q, false, false, p);
+    grid.push("⬛"); s.leaves++;
+  }
+  while (grid.length < s.ids.length) grid.push("⬛");
+  Object.assign(s, { grid: grid.join(""), pending: false, done: true });
+  save();
+  return s;
+}
+function challengeResult(s, from) {
+  return { mode: "challenge", key: todayKey(), level: s.lvl, score: s.score, correct: s.correct, instant: s.instant,
+    total: s.ids.length, grid: s.grid, leaves: s.leaves, scheduled: true, rules: s.rules, ids: s.ids,
+    challenge: { lvl: s.lvl, seed: s.seed, ids: s.ids, cid: challengeId(s.lvl, s.seed, s.ids), from } };
+}
+let shownChallenge = null;
+// Άνοιγμα κωδικού: αν ο παίκτης έχει ήδη παίξει την πρόκληση, μόνο σύγκριση· αλλιώς οθόνη αποδοχής.
+function openChallenge(text) {
+  const p = P();
+  if (!p) { pendingChallenge = text; openWelcome(); return; }
+  applyLang();                     // στην εκκίνηση από σύνδεσμο τα κείμενα δεν έχουν γραφτεί ακόμη
+  let c;
+  try { c = parseChallenge(text); }
+  catch (e) {
+    goHome(); $("chBox").classList.remove("hidden");
+    $("chMsg").className = "msg bad"; $("chMsg").textContent = T().chBad[e.message] || T().chBad.format;
+    return;
+  }
+  const cid = challengeId(c.lvl, c.seed, c.ids), mine = p.challenges && p.challenges[cid];
+  if (mine) { renderResult({ ...challengeResult(closeChallenge(p, cid), c.from), fresh: [] }); return; }
+  shownChallenge = c;
+  renderChallenge();
+  show("challenge");
+}
+function renderChallenge() {
+  const c = shownChallenge;
+  if (!c) return;
+  $("chFrom").textContent = T().chFrom(LEVELS[c.lvl][state.lang], c.from.score, c.from.correct, ROUND, c.from.instant);
+  $("chGrid").textContent = c.from.grid;
+  const seen = c.ids.filter(id => SEEN.has(id)).length, warn = [];
+  if (seen) warn.push(T().chSeen(seen));
+  if (c.from.rules !== RULES) warn.push(T().chOtherRules(c.from.rules));
+  $("chWarn").textContent = warn.join(" ");
+  $("chWarn").classList.toggle("hidden", !warn.length);
+}
+// Κείμενο σύγκρισης στο αποτέλεσμα.
+function renderVs(r) {
+  const box = $("vsBox"), c = r.challenge;
+  box.replaceChildren();
+  box.classList.toggle("hidden", !c);
+  if (!c) return;
+  const line = t => { const d = document.createElement("div"); d.textContent = t; box.append(d); return d; };
+  if (!c.from) { line(T().chSendHint); return; }
+  const f = c.from, verdict = r.score !== f.score ? (r.score > f.score ? "win" : "lose")
+    : r.correct !== f.correct ? (r.correct > f.correct ? "win" : "lose") : "tie";
+  line(T()[verdict]).className = "verdict";
+  line(T().vsLine(T().me, r.score, r.correct, r.total, r.instant || 0));
+  line(r.grid).className = "vsgrid";
+  line(T().vsLine(T().them, f.score, f.correct, ROUND, f.instant));
+  line(f.grid).className = "vsgrid";
+  if (f.rules !== (r.rules || 1)) line(T().chOtherRules(f.rules)).className = "muted small";
+}
+
+// ---------- συνέχιση ημερήσιου μετά από διακοπή (Β10) ----------
+// Η πρόοδος του ημερήσιου γράφεται στο p.live["επίπεδο|ημέρα"] όταν εμφανίζεται κάθε ερώτηση (pending: true)
+// και μετά από κάθε απάντηση (pending: false). Αν η εφαρμογή κλείσει, ο γύρος συνεχίζει από το ίδιο σημείο·
+// η ερώτηση που έτρεχε μετρά ως έξοδος (⬛), άρα καμία ερώτηση δεν παίζεται δεύτερη φορά.
+function syncLive() {
+  const p = P();
+  if (run && run.mode === "challenge" && p) { syncChallenge(p); return; }
+  if (!run || run.mode !== "daily" || !p) return;
+  (p.live = p.live || {})[`${run.level}|${run.key}`] = {
+    ids: run.items.map(it => it.q.id), orders: run.items.map(it => it.order),
+    done: run.grid.length, pending: !run.answered,
+    score: run.score, correct: run.correct, instant: run.instant, grid: run.grid.slice(), leaves: run.leaves,
+    times: run.times.slice(), scheduled: run.scheduled, rules: run.rules
+  };
+}
+function dropLive(p, k) {
+  if (!p.live) return;
+  delete p.live[k];
+  if (!Object.keys(p.live).length) delete p.live;
+}
+function resumeDaily(key, lvl, L) {
+  const items = L.ids.map((id, j) => ({ q: BY_ID.get(id), order: L.orders[j] }));
+  // Η τράπεζα ή οι κανόνες βαθμολογίας άλλαξαν στο μεταξύ: ο γύρος κλείνει, ώστε να μην ανακατευτούν δύο εκδόσεις κανόνων.
+  if (items.some(it => !it.q) || (L.rules || 1) !== RULES) { closeLive(P(), `${lvl}|${key}`); start("daily"); return; }
+  run = {
+    mode: "daily", key, level: lvl, i: L.done, score: L.score, correct: L.correct, instant: L.instant,
+    grid: L.grid.slice(), leaves: L.leaves, times: L.times.slice(), scheduled: L.scheduled,
+    rules: L.rules || 1,             // γύρος της v7 (χωρίς πεδίο) = κανόνες 1
+    items, answered: false, deadline: 0, shownAt: 0
+  };
+  show("game");
+  if (!L.pending) { nextQuestion(); return; }
+  // Η ερώτηση έτρεχε όταν έκλεισε η εφαρμογή: εμφανίζεται ήδη ακυρωμένη, με τη σωστή απάντηση και την εξήγηση.
+  renderQuestion(false);
+  $("timerBar").style.transform = "scaleX(0)"; $("timeLeft").textContent = `0${T().s}`;
+  run.shownAt = run.deadline = performance.now();
+  run.leaves++;
+  answer(null, "left");
+}
+// Μισοτελειωμένο ημερήσιο προηγούμενης ημέρας: κλείνει με ό,τι κερδήθηκε· η ερώτηση που έτρεχε μετρά ως έξοδος,
+// όσες δεν εμφανίστηκαν ποτέ ως ⬛ χωρίς πόντους (και μένουν «αθέατες» για την εξάσκηση).
+function closeLive(p, k) {
+  const L = p.live[k], grid = L.grid.slice();
+  let leaves = L.leaves;
+  if (L.pending) {
+    const q = QUESTIONS.find(x => x.id === L.ids[L.done]);   // όχι BY_ID: καλείται και από το loadPlayer() στην εκκίνηση
+    if (q) recordAnswer(q, false, false, p);
+    grid.push("⬛"); leaves++;
+  }
+  while (grid.length < L.ids.length) grid.push("⬛");
+  p.days[k] = { score: L.score, correct: L.correct, instant: L.instant, total: L.ids.length, grid: grid.join(""),
+    leaves, scheduled: L.scheduled, medianMs: median(L.times), times: L.times.slice(), ids: L.ids, rules: L.rules || 1 };
+  dropLive(p, k);
+  save();
+}
+function tidyLive(p) {
+  if (!p.live || typeof p.live !== "object") { delete p.live; return; }
+  const today = todayKey();
+  for (const k of Object.keys(p.live)) {
+    if (p.days[k]) dropLive(p, k);                       // ήδη ολοκληρωμένο (π.χ. από δεύτερη καρτέλα)
+    else if (k.slice(2) < today) closeLive(p, k);
+  }
+}
+function median(times) {   // από τη v11: σε άρτιο πλήθος ο μέσος όρος των δύο μεσαίων τιμών
+  const t = times.slice().sort((a, b) => a - b), h = t.length >> 1;
+  return !t.length ? null : t.length % 2 ? t[h] : Math.round((t[h - 1] + t[h]) / 2);
+}
+
+function nextQuestion() {
+  if (run.i >= run.items.length) return finish();
+  run.answered = false;
+  syncLive();
+  markSeen(run.items[run.i].q.id);
+  save();
+  run.shownAt = performance.now();
+  run.deadline = run.shownAt + seconds() * 1000;
+  renderQuestion(false);
+  if (run.mode !== "relaxed") tick();   // χαλαρή εξάσκηση (Β2): χωρίς χρονόμετρο
+}
+
+function renderQuestion(keepState) {
+  const { q, order } = run.items[run.i];
+  const data = q[state.lang];
+  $("progress").textContent = `${T().q} ${run.i + 1}/${run.items.length}`;
+  $("category").textContent = CATEGORIES[q.cat][state.lang];
+  $("game").classList.toggle("relaxed", run.mode === "relaxed");
+  if (run.mode === "relaxed") $("timeLeft").textContent = T().noTimer;
+  $("question").textContent = data[0];
+  const box = $("options");
+  const prev = keepState ? [...box.children].map(b => b.className) : null;
+  box.replaceChildren();
+  order.forEach((optIdx, pos) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = prev ? prev[pos] : "opt"; b.dataset.opt = optIdx;
+    b.disabled = run.answered;
+    const k = document.createElement("span"); k.className = "key"; k.textContent = T().keys[pos];
+    const txt = document.createElement("span"); txt.textContent = data[1 + optIdx];
+    const mark = document.createElement("span"); mark.className = "mark"; mark.setAttribute("aria-hidden", "true");
+    b.append(k, txt, mark);
+    b.addEventListener("click", () => answer(optIdx));
+    box.append(b);
+  });
+  if (!keepState) { $("feedback").textContent = ""; $("feedback").className = "feedback"; }
+  renderExplain();
+}
+
+// Μετά την απάντηση: εξήγηση + πηγή + κουμπί «Επόμενη». Το επόμενο χρονόμετρο ξεκινά μόνο όταν το πατήσεις,
+// άρα το άνοιγμα της πηγής (που κρύβει την εφαρμογή) δεν ακυρώνει τίποτα.
+function renderExplain() {
+  const on = !!(run && run.answered);
+  const has = on && fillExplain($("explainText"), $("explainSrc"), run.items[run.i].q);
+  $("explain").classList.toggle("hidden", !has);
+  $("nextBtn").classList.toggle("hidden", !on);
+  $("nextBtn").textContent = run && run.i + 1 >= run.items.length ? T().toResult : T().nextQ;
+}
+function advance() {
+  if (!run || !run.answered) return;
+  run.i++;
+  nextQuestion();
+}
+
+// Στην εξοικονόμηση το χρονόμετρο ανανεώνεται 4 φορές/δευτ. αντί για ~60 (λιγότερη δουλειά για CPU/οθόνη).
+function tick() {
+  clearTimeout(timerId); cancelAnimationFrame(timerId);
+  const total = seconds() * 1000;
+  const step = () => {
+    if (!run || run.answered) return;
+    const left = Math.max(0, run.deadline - performance.now());
+    $("timerBar").style.transform = `scaleX(${left / total})`;
+    $("timeLeft").textContent = `${Math.ceil(left / 1000)}${T().s}`;
+    if (left <= 0) return answer(null);
+    timerId = effectiveMode() === "saver" ? setTimeout(step, 250) : requestAnimationFrame(step);
+  };
+  step();
+}
+
+// reason: undefined = κανονική απάντηση, "left" = ο παίκτης έφυγε από την εφαρμογή
+function answer(optIdx, reason) {
+  if (!run || run.answered) return;
+  run.answered = true;
+  clearTimeout(timerId); cancelAnimationFrame(timerId);
+  const now = performance.now(), total = seconds() * 1000;
+  const left = Math.max(0, run.deadline - now), elapsed = now - run.shownAt;
+  const { q } = run.items[run.i];
+  const ok = optIdx === 0 && reason !== "left"; // στην τράπεζα η σωστή είναι πάντα η πρώτη επιλογή
+  const timed = run.mode !== "relaxed";       // χαλαρή εξάσκηση: χωρίς πόντους και χωρίς ⚡
+  const instant = timed && ok && elapsed <= instantLimitMs(q, state.lang, total);
+  if (timed) run.score += pointsFor(ok, left, total, instant);
+  if (ok) run.correct++;
+  if (instant) run.instant++;
+  if (optIdx !== null) run.times.push(Math.round(elapsed));
+  run.grid.push(reason === "left" ? "⬛" : instant ? "⚡" : ok ? "🟩" : optIdx === null ? "⬜" : "🟥");
+  syncLive();                     // μία αποθήκευση (μέσα στο recordAnswer) για πρόοδο και στατιστικά μαζί
+  recordAnswer(q, ok, instant);
+  [...$("options").children].forEach(b => {
+    b.disabled = true;
+    const v = Number(b.dataset.opt);
+    if (v === 0) b.classList.add("correct");
+    else if (v === optIdx) b.classList.add("wrong");
+  });
+  const fb = $("feedback");
+  fb.replaceChildren();
+  if (instant) { const s = document.createElement("span"); s.className = "instant"; s.textContent = T().instantHit; fb.append(s); }
+  else fb.textContent = reason === "left" ? T().left : ok ? T().correct : optIdx === null ? T().timeout : T().wrong;
+  fb.className = "feedback " + (ok ? "ok" : "bad");
+  renderExplain();
+  if (reason !== "left") $("nextBtn").focus({ preventScroll: true });
+}
+
+// Άμυνα: αν η εφαρμογή κρυφτεί ενώ τρέχει ερώτηση (αλλαγή εφαρμογής/καρτέλας), η ερώτηση ακυρώνεται.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && run && !run.answered && run.mode !== "relaxed") { run.leaves++; answer(null, "left"); }
+});
+// Άμυνα: χωρίς αντιγραφή, αποκοπή, σύρσιμο ή μενού παρατεταμένου πατήματος πάνω στις ερωτήσεις.
+["copy", "cut", "contextmenu", "dragstart", "selectstart"].forEach(ev =>
+  $("game").addEventListener(ev, e => e.preventDefault()));
+
+function finish() {
+  const r = {
+    mode: run.mode, key: run.key, level: run.level, score: run.score, correct: run.correct, instant: run.instant,
+    total: run.items.length, grid: run.grid.join(""), leaves: run.leaves, scheduled: run.scheduled, rules: run.rules,
+    medianMs: median(run.times),                                          // για μελλοντικό έλεγχο κατάταξης
+    times: run.times.slice(),                                             // χρόνοι απαντήσεων (ms) για τους δείκτες (Β3/Β11)
+    ids: run.items.map(it => it.q.id)                                     // για την ανασκόπηση απαντήσεων
+  };
+  if (run.mode === "daily" && P()) {
+    const { mode, key, level: lvl, ...rest } = r;
+    P().days[`${lvl}|${key}`] = rest;
+    dropLive(P(), `${lvl}|${key}`);
+    save();
+  }
+  if (run.mode === "challenge" && P()) {
+    syncChallenge(P());
+    P().challenges[run.challenge.cid].done = true;
+    save();
+    const { cid, ...c } = run.challenge;
+    r.challenge = { ...c, cid };
+  }
+  run = null;
+  r.fresh = unlockAchievements(P()).map(a => a[0]);
+  renderResult(r);
+}
+
+function stats(lvl, p = P()) {
+  const days = (p && p.days) || {}, prefix = `${lvl}|`;
+  const keys = Object.keys(days).filter(k => k.startsWith(prefix));
+  let streak = 0;
+  const d = new Date();
+  if (!days[prefix + todayKey(d)]) d.setDate(d.getDate() - 1); // το σερί δεν σπάει πριν παίξεις σήμερα
+  while (days[prefix + todayKey(d)]) { streak++; d.setDate(d.getDate() - 1); }
+  const best = keys.reduce((m, k) => Math.max(m, days[k].score), 0);
+  return { played: keys.length, streak, best, total: totals(p, lvl).points };
+}
+
+function renderResult(r) {
+  lastResult = r;
+  show("result");
+  const lvlName = LEVELS[r.level][state.lang];
+  $("resultLabel").textContent = r.mode === "daily" ? `${T().daily} · ${lvlName} · ${r.key}`
+    : r.mode === "challenge" ? `${T().challengeScore} · ${lvlName}`
+    : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}` : `${T().practiceScore} · ${lvlName}`;
+  const relaxed = r.mode === "relaxed";
+  const badge = $("fairBadge");
+  badge.textContent = r.leaves ? T().unfair(r.leaves) : T().fair;
+  badge.className = "badge " + (r.leaves ? "bad" : "ok");
+  badge.classList.toggle("hidden", relaxed);
+  $("resultScore").textContent = relaxed ? `${r.correct}/${r.total}` : r.score;
+  $("resultCorrect").textContent = relaxed ? T().relaxedNote(r.correct, r.total) : T().correctOf(r.correct, r.total);
+  $("resultInstant").textContent = relaxed ? "" : T().instantOf(r.instant || 0, r.correct);
+  $("resultRules").textContent = r.rules ? T().rulesOf(r.rules) : "";   // αποτελέσματα πριν από τη v8: χωρίς ένδειξη
+  $("resultRules").classList.toggle("hidden", !r.rules);
+  $("resultGrid").textContent = r.grid;
+  $("offSchedule").classList.toggle("hidden", r.scheduled !== false);
+  const s = stats(r.level);
+  $("statPlayed").textContent = s.played; $("statStreak").textContent = s.streak;
+  const fmt = v => v.toLocaleString(state.lang === "el" ? "el-GR" : "en-GB");
+  $("statBest").textContent = fmt(s.best); $("statTotal").textContent = fmt(s.total);
+  $("share").classList.toggle("hidden", r.mode === "practice" || relaxed);
+  $("again").textContent = relaxed ? T().relaxed : T().practice;
+  $("share").textContent = r.mode !== "challenge" ? T().share : r.challenge.from ? T().sendReply : T().sendChallenge;
+  $("shareCard").classList.toggle("hidden", r.mode !== "daily");
+  renderVs(r);
+  $("shareMsg").classList.add("hidden");
+  $("cardImg").classList.add("hidden"); $("cardSave").classList.add("hidden");
+  // Νέα επιτεύγματα αυτού του γύρου
+  const box = $("newAch"), fresh = ACHIEVEMENTS.filter(a => (r.fresh || []).includes(a[0]));
+  box.replaceChildren();
+  fresh.forEach(a => {
+    const line = document.createElement("div"), b = document.createElement("b");
+    b.textContent = `${a[1]} ${T().newAch} `;
+    line.append(b, achName(a));
+    box.append(line);
+  });
+  box.classList.toggle("hidden", !fresh.length);
+  // Ανασκόπηση: ερώτηση, σωστή απάντηση, εξήγηση, πηγή
+  const list = $("reviewList"), marks = Array.from(r.grid || ""), ids = Array.isArray(r.ids) ? r.ids : [];
+  list.replaceChildren();
+  ids.forEach((id, i) => {
+    const q = BY_ID.get(id);
+    if (!q) return;
+    const li = document.createElement("li"), h = document.createElement("b"), a = document.createElement("div");
+    h.textContent = `${marks[i] || ""} ${q[state.lang][0]}`;
+    const ans = document.createElement("span"); ans.className = "ans"; ans.textContent = q[state.lang][1];
+    a.append(`${T().answerIs} `, ans);
+    const ex = document.createElement("div"), link = document.createElement("a");
+    fillExplain(ex, link, q);
+    li.append(h, a, ex, link);
+    list.append(li);
+  });
+  $("reviewBox").classList.toggle("hidden", !list.children.length);
+  updateCountdown();
+}
+
+// ---------- στατιστικά και επιτεύγματα ----------
+function renderProfile() {
+  const p = P();
+  if (!p) return;
+  const t = totals(p);
+  $("profileSummary").textContent = T().profileSummary(t.points, rankName(t.points), t.days, (p.seen || []).length);
+  renderIndicators(p);
+  renderHistory(p);
+  const cats = $("catList");
+  cats.replaceChildren();
+  Object.entries(CATEGORIES).forEach(([c, names]) => {
+    const s = (p.stats || {})[c] || { n: 0, ok: 0, fast: 0 };
+    const row = document.createElement("div"); row.className = "catrow";
+    const nm = document.createElement("span"); nm.textContent = names[state.lang];
+    const val = document.createElement("span"); val.className = "muted"; val.textContent = T().catLine(s.n, s.ok, s.fast);
+    const bar = document.createElement("div"); bar.className = "bar";
+    const fill = document.createElement("div"); fill.style.width = `${s.n ? Math.round(100 * s.ok / s.n) : 0}%`;
+    bar.append(fill); row.append(nm, val, bar); cats.append(row);
+  });
+  const achs = $("achList"), got = p.ach || {};
+  achs.replaceChildren();
+  ACHIEVEMENTS.forEach(a => {
+    const d = document.createElement("div"); d.className = "ach" + (got[a[0]] ? "" : " locked");
+    const ic = document.createElement("div"); ic.className = "ic"; ic.textContent = a[1];
+    const b = document.createElement("b"); b.textContent = achName(a);
+    const desc = document.createElement("div"); desc.textContent = state.lang === "el" ? a[4] : a[5];
+    const when = document.createElement("div"); when.className = "muted"; when.textContent = got[a[0]] || T().locked;
+    d.append(ic, b, desc, when); achs.append(d);
+  });
+  $("achTitle").textContent = T().achTitle(Object.keys(got).length, ACHIEVEMENTS.length);
+}
+// ---------- δείκτες Γνώση/Ταχύτητα και ιστορικό (Β3/Β11) ----------
+// Μόνο ημερήσια κουίζ (ίδιες ερωτήσεις και κανόνες για όλους). Ορισμοί: UI.kpiDef και HANDBOOK §5.8.
+const HISTORY_SHOW = 30;
+function indicators(p, lvl) {
+  let days = 0, questions = 0, ok = 0, inst = 0, score = 0;
+  const times = [];
+  for (const [k, d] of dailyList(p)) {
+    if (lvl && !k.startsWith(`${lvl}|`)) continue;
+    days++; questions += d.total || ROUND; ok += d.correct || 0; inst += d.instant || 0; score += d.score || 0;
+    if (Array.isArray(d.times)) d.times.forEach(x => { if (Number.isFinite(x) && x >= 0) times.push(x); });
+  }
+  return { days, knowledge: questions ? ok / questions : null, instantShare: ok ? inst / ok : null,
+    medianMs: median(times), meanMs: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null,
+    avgScore: days ? score / days : null, answers: times.length };
+}
+function fmtPct(x) { return x === null ? "—" : `${Math.round(100 * x)}%`; }
+function fmtSec(ms) {
+  return ms === null ? "—" : (ms / 1000).toLocaleString(state.lang === "el" ? "el-GR" : "en-GB", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "″";
+}
+function renderIndicators(p) {
+  const all = indicators(p);
+  $("kpiKnow").textContent = fmtPct(all.knowledge); $("kpiSpeed").textContent = fmtSec(all.medianMs);
+  $("kpiMean").textContent = fmtSec(all.meanMs); $("kpiInstant").textContent = fmtPct(all.instantShare);
+  const head = $("lvlHead"), body = $("lvlBody");
+  head.replaceChildren(...T().lvlCols.map(c => { const th = document.createElement("th"); th.textContent = c; return th; }));
+  body.replaceChildren();
+  const row = (name, x, cls) => {
+    const tr = document.createElement("tr"); if (cls) tr.className = cls;
+    [name, String(x.days), fmtPct(x.knowledge), fmtPct(x.instantShare), fmtSec(x.medianMs),
+     x.avgScore === null ? "—" : Math.round(x.avgScore).toLocaleString(state.lang === "el" ? "el-GR" : "en-GB")]
+      .forEach(v => { const td = document.createElement("td"); td.textContent = v; tr.append(td); });
+    body.append(tr);
+  };
+  Object.keys(LEVELS).forEach(l => row(LEVELS[l][state.lang], indicators(p, l)));
+  row(T().allLevels, all, "all");
+}
+// Ιστορικό: ημερήσια (days) και ολοκληρωμένες προκλήσεις (challenges), νεότερα πρώτα.
+function historyRows(p) {
+  const rows = dailyList(p).map(([k, d]) => ({ kind: "daily", day: k.slice(2), lvl: Number(k[0]), d }));
+  for (const s of Object.values(p.challenges || {})) {
+    if (s.done) rows.push({ kind: "challenge", day: s.at ? todayKey(new Date(s.at)) : "", lvl: s.lvl, d: s, at: s.at || "" });
+  }
+  return rows.sort((a, b) => b.day.localeCompare(a.day) || (a.kind === b.kind ? (b.at || "").localeCompare(a.at || "") || a.lvl - b.lvl
+    : a.kind === "daily" ? -1 : 1));
+}
+function renderHistory(p) {
+  const list = $("histList"), rows = historyRows(p);
+  list.replaceChildren();
+  if (!rows.length) { const li = document.createElement("li"); li.className = "muted small"; li.textContent = T().histEmpty; list.append(li); return; }
+  const loc = state.lang === "el" ? "el-GR" : "en-GB";
+  rows.slice(0, HISTORY_SHOW).forEach(h => {
+    const li = document.createElement("li"), b = document.createElement("button"), g = document.createElement("span");
+    b.type = "button";
+    const [y, m, d] = h.day.split("-").map(Number);
+    const date = h.day ? new Date(y, m - 1, d).toLocaleDateString(loc, { day: "numeric", month: "short" }) : "";
+    b.textContent = `${date} · ${h.kind === "daily" ? T().histDaily : T().histChallenge} · ${LEVELS[h.lvl][state.lang]} · `
+      + `${(h.d.score || 0).toLocaleString(loc)} · ${h.d.correct}/${h.d.total || (h.d.ids || []).length || ROUND} · ⚡ ${h.d.instant || 0}`;
+    g.className = "g"; g.textContent = h.d.grid || "";
+    b.append(g);
+    b.addEventListener("click", () => renderResult(h.kind === "daily"
+      ? { mode: "daily", key: h.day, level: h.lvl, ...h.d, fresh: [] } : { ...challengeResult(h.d, null), fresh: [] }));
+    li.append(b); list.append(li);
+  });
+}
+function openProfile() { if (!P()) return; renderProfile(); show("profile"); }
+let profileBack = "home";
+
+function updateCountdown() {
+  const now = new Date(), next = new Date(now); next.setHours(24, 0, 0, 0);
+  const ms = next - now, h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000);
+  $("nextIn").textContent = T().next(`${h}:${String(m).padStart(2, "0")}`);
+}
+setInterval(() => { if (!$("result").classList.contains("hidden")) updateCountdown(); }, 60000);
+
+async function share() {
+  const r = lastResult, url = `${location.origin}${location.pathname}`;
+  let text = `Four Choices · ${LEVELS[r.level][state.lang]} · ${r.key}\n${r.grid}\n${r.score} · ${T().correctOf(r.correct, r.total)} · ⚡ ${r.instant || 0}\n${url}`;
+  if (r.mode === "challenge") {   // σύνδεσμος με #c=… (το τμήμα μετά το # δεν φτάνει ποτέ στον server) + κωδικός για επικόλληση
+    const code = challengeCode(r.challenge, r);
+    text = `Four Choices · ${T().chTitle} · ${LEVELS[r.level][state.lang]}\n${r.grid}\n${r.score} · ${T().correctOf(r.correct, r.total)} · ⚡ ${r.instant || 0}\n${T().beatMe}\n`
+      + (/^https?:$/.test(location.protocol) ? `${url}#c=${code}\n` : "") + `${T().codeLabel} ${code}`;
+  }
+  const msg = $("shareMsg");
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+  } catch (e) {
+    if (e && e.name === "AbortError") return; // ο χρήστης ακύρωσε
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    msg.textContent = T().copied;
+  } catch {
+    msg.textContent = text; // χωρίς κοινοποίηση/πρόχειρο: το κείμενο εμφανίζεται για χειροκίνητη αντιγραφή
+  }
+  msg.classList.remove("hidden");
+}
+
+// Κάρτα εικόνας 1080×1080: σχεδιάζεται τοπικά (canvas), χωρίς εξωτερικές υπηρεσίες.
+function drawCard(r) {
+  const S = 1080, c = document.createElement("canvas");
+  c.width = c.height = S;
+  const g = c.getContext("2d"), font = (w, px) => `${w} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  const emoji = px => `${px}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+  const bg = g.createLinearGradient(0, 0, S, S);
+  bg.addColorStop(0, "#1f3a5f"); bg.addColorStop(1, "#0e1b2c");
+  g.fillStyle = bg; g.fillRect(0, 0, S, S);
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillStyle = "#ffffff"; g.font = font(800, 64); g.fillText("Four Choices", S / 2, 130);
+  const lvl = LEVELS[r.level][state.lang];
+  const [y, m, d] = r.key.split("-").map(Number);
+  g.fillStyle = "#c9d6e6"; g.font = font(500, 40);
+  g.fillText(`${lvl} · ${T().date(new Date(y, m - 1, d))}`, S / 2, 200);
+  g.fillStyle = "#ffffff"; g.font = font(800, 220); g.fillText(String(r.score), S / 2, 450);
+  g.fillStyle = "#c9d6e6"; g.font = font(600, 44);
+  g.fillText(`${T().cardCorrect(r.correct, r.total)} · ⚡ ${r.instant || 0}`, S / 2, 530);
+  const marks = Array.from(r.grid || ""), cell = 88, x0 = S / 2 - (marks.length * cell) / 2 + cell / 2;
+  g.font = emoji(68);
+  marks.forEach((ch, i) => g.fillText(ch, x0 + i * cell, 680));
+  const st = stats(r.level), t = totals(P());
+  g.fillStyle = "#ffffff"; g.font = font(600, 44);
+  g.fillText(`${T().cardStreak(st.streak)} · ${rankName(t.points)}`, S / 2, 800);
+  g.fillStyle = r.leaves ? "#ff8a80" : "#6fd3a0"; g.font = font(600, 36);
+  g.fillText(r.leaves ? T().unfair(r.leaves) : T().fair, S / 2, 870);
+  if (/^https?:$/.test(location.protocol)) {
+    g.fillStyle = "#9fb3c8"; g.font = font(500, 32);
+    g.fillText((location.host + location.pathname).replace(/index\.html$/, "").replace(/\/$/, ""), S / 2, 1010);
+  }
+  return c;
+}
+async function shareCard() {
+  const r = lastResult, c = drawCard(r), msg = $("shareMsg");
+  const blob = await new Promise(res => c.toBlob(res, "image/png"));
+  const name = `four-choices-${r.level}-${r.key}.png`;
+  try {
+    const file = blob && new File([blob], name, { type: "image/png" });
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+  // Χωρίς κοινοποίηση αρχείων: εμφάνιση της εικόνας και σύνδεσμος αποθήκευσης.
+  const url = c.toDataURL("image/png");
+  $("cardImg").src = url; $("cardImg").alt = `Four Choices ${r.key}: ${r.score}`; $("cardImg").classList.remove("hidden");
+  const a = $("cardSave"); a.href = url; a.download = name; a.classList.remove("hidden");
+  msg.textContent = T().cardShown; msg.classList.remove("hidden");
+}
+
+// Ενημέρωση ερωτήσεων: κατεβάζει ξανά όλα τα αρχεία από τον server (παρακάμπτοντας την αποθήκη offline).
+async function refreshQuestions() {
+  if (location.protocol === "file:") { location.reload(); return; }
+  $("refreshMsg").textContent = T().refreshing;
+  try {
+    const res = await fetch("questions.js", { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    if ("caches" in window) for (const k of await caches.keys()) await caches.delete(k);
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    location.reload();
+  } catch {
+    $("refreshMsg").textContent = T().refreshFail;
+  }
+}
+
+$("startDaily").addEventListener("click", () => start("daily"));
+$("startPractice").addEventListener("click", () => start("practice"));
+$("startChallenge").addEventListener("click", () => startChallenge(null));
+$("chToggle").addEventListener("click", () => { $("chBox").classList.toggle("hidden"); $("chMsg").textContent = ""; });
+$("chOpen").addEventListener("click", () => { const t = $("chIn").value; $("chIn").value = ""; openChallenge(t); });
+$("chAccept").addEventListener("click", () => { const c = shownChallenge; shownChallenge = null; if (c) startChallenge(c); });
+$("chBack").addEventListener("click", () => { shownChallenge = null; goHome(); });
+$("startRelaxed").addEventListener("click", () => start("relaxed"));
+$("again").addEventListener("click", () => start(lastResult && lastResult.mode === "relaxed" ? "relaxed" : "practice"));
+$("home2").addEventListener("click", goHome);
+$("share").addEventListener("click", share);
+$("shareCard").addEventListener("click", shareCard);
+$("nextBtn").addEventListener("click", advance);
+$("openProfile").addEventListener("click", () => { profileBack = "home"; openProfile(); });
+$("openProfile2").addEventListener("click", () => { profileBack = "result"; openProfile(); });
+$("closeProfile").addEventListener("click", () => {
+  if (profileBack === "result" && lastResult) renderResult({ ...lastResult, fresh: [] }); else goHome();
+});
+$("openSettings").addEventListener("click", () => { $("refreshMsg").textContent = ""; applyLang(); show("settings"); });
+$("closeSettings").addEventListener("click", goHome);
+$("refresh").addEventListener("click", refreshQuestions);
+$("openPlayers").addEventListener("click", openPlayers);
+$("closePlayers").addEventListener("click", goHome);
+$("addPlayer").addEventListener("click", openWelcome);
+$("cancelCreate").addEventListener("click", openPlayers);
+$("createPlayer").addEventListener("click", createPlayer);
+$("pinOk").addEventListener("click", confirmPin);
+$("pinInput").addEventListener("keydown", e => { if (e.key === "Enter") confirmPin(); });
+$("logout").addEventListener("click", logout);
+$("showImport").addEventListener("click", () => { openPlayers(); $("importBox").classList.remove("hidden"); });
+$("importToggle").addEventListener("click", () => $("importBox").classList.toggle("hidden"));
+$("makeCode").addEventListener("click", async () => {
+  const out = $("codeOut"), msg = $("playersMsg");
+  out.value = exportCode(); out.hidden = false; out.select();
+  try { await navigator.clipboard.writeText(out.value); msg.className = "msg ok"; msg.textContent = T().codeCopied; }
+  catch { msg.className = "msg"; msg.textContent = T().codeShown; }
+});
+$("importCode").addEventListener("click", () => {
+  const msg = $("playersMsg");
+  try {
+    const name = importCode($("codeIn").value);
+    $("codeIn").value = ""; renderPlayers();
+    msg.className = "msg ok"; msg.textContent = T().imported(name);
+  } catch { msg.className = "msg bad"; msg.textContent = T().codeBad; }
+});
+document.addEventListener("keydown", e => {
+  if (!run) return;
+  if (run.answered) {   // Enter/→ = επόμενη (το Enter πάνω στο εστιασμένο κουμπί το χειρίζεται ήδη το click)
+    if (e.key === "ArrowRight" || (e.key === "Enter" && document.activeElement !== $("nextBtn"))) { e.preventDefault(); advance(); }
+    return;
+  }
+  const pos = "1234".indexOf(e.key);
+  if (pos >= 0) answer(run.items[run.i].order[pos]);
+});
+
+applyMode();
+save();
+// Σύνδεσμος πρόκλησης (#c=…): κρατιέται μέχρι να υπάρξει παίκτης και σβήνει από τη διεύθυνση.
+if (/^#c=C1-/.test(location.hash)) {
+  pendingChallenge = decodeURIComponent(location.hash.slice(3));
+  try { history.replaceState(null, "", location.pathname + location.search); } catch { /* π.χ. sandbox */ }
+}
+if (!Object.keys(state.profiles).length) openWelcome();
+else if (!P()) openPlayers();
+else goHome();
+
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>

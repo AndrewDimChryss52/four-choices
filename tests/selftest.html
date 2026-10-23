@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four Choices — Αυτοέλεγχος</title>
+<style>
+  :root { --bg:#f6f4ef; --fg:#1d232b; --muted:#5c6672; --line:#d9d4ca; --ok:#1f7a4d; --bad:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --fg:#eef1f4; --muted:#9aa5b1; --line:#2c343e; --ok:#6fd3a0; --bad:#ff8a80; } }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:15px/1.45 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  td, th { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .pass { color: var(--ok); font-weight: 700; } .fail { color: var(--bad); font-weight: 700; }
+  #summary { font-size: 18px; font-weight: 700; margin-top: 12px; }
+  iframe { width: 390px; height: 700px; border: 1px solid var(--line); margin-top: 16px; }
+  code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Four Choices — Αυτόματος αυτοέλεγχος</h1>
+  <p style="color:var(--muted);margin:0">Φορτώνει το παιχνίδι σε πλαίσιο και ελέγχει κανόνες, βαθμολογία, πρόγραμμα, εξηγήσεις, επιτεύγματα, κάρτα, παίκτες και μεταφορά.
+  Εκτέλεση: στον φάκελο του παιχνιδιού <code>py -m http.server 8000</code> και άνοιγμα του
+  <code>http://localhost:8000/tests/selftest.html</code>. Τα δεδομένα του παιχνιδιού σε αυτόν τον browser
+  αποθηκεύονται πριν από τον έλεγχο και επαναφέρονται στο τέλος.</p>
+  <div id="summary">Εκτέλεση…</div>
+  <table><thead><tr><th>#</th><th>T</th><th>Έλεγχος</th><th>Αποτέλεσμα</th><th>Λεπτομέρειες</th></tr></thead><tbody id="rows"></tbody></table>
+  <iframe id="app" title="Παιχνίδι υπό έλεγχο"></iframe>
+</main>
+<script>
+"use strict";
+const KEYS = ["fourchoices.v3", "fourchoices.v2"];
+const backup = {};
+const rows = document.getElementById("rows");
+const frame = document.getElementById("app");
+let n = 0, failed = 0;
+// Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
+const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
+  11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07" };
+
+function report(name, ok, detail = "") {
+  n++; if (!ok) failed++;
+  const tr = document.createElement("tr");
+  [String(n), TMAP[n] || "", name, ok ? "ΕΠΙΤΥΧΙΑ" : "ΑΠΟΤΥΧΙΑ", detail].forEach((t, i) => {
+    const td = document.createElement("td"); td.textContent = t;
+    if (i === 3) td.className = ok ? "pass" : "fail";
+    tr.append(td);
+  });
+  rows.append(tr);
+}
+function check(name, fn) {
+  try { const r = fn(); report(name, r === true || (r && r.ok), r && r.detail ? r.detail : ""); }
+  catch (e) { report(name, false, "Εξαίρεση: " + e.message); }
+}
+async function checkAsync(name, fn) {
+  try { const r = await fn(); report(name, r === true || (r && r.ok), r && r.detail ? r.detail : ""); }
+  catch (e) { report(name, false, "Εξαίρεση: " + e.message); }
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function load(storage = {}) {
+  KEYS.forEach(k => localStorage.removeItem(k));
+  for (const [k, v] of Object.entries(storage)) localStorage.setItem(k, JSON.stringify(v));
+  return new Promise(res => { frame.onload = () => res(); frame.src = "../index.html?t=" + Date.now(); });
+}
+const W = () => frame.contentWindow;
+const E = code => W().eval(code);            // πρόσβαση και στις καθολικές const/let του παιχνιδιού
+const D = id => W().document.getElementById(id);
+const visible = id => !D(id).classList.contains("hidden");
+const press = k => { const w = W(); w.document.dispatchEvent(new w.KeyboardEvent("keydown", { key: k })); };
+const correctKey = () => String(1 + E("run.items[run.i].order.indexOf(0)"));
+
+async function run() {
+  KEYS.forEach(k => { backup[k] = localStorage.getItem(k); });
+  await load();
+
+  // ---------- 1. Τράπεζα ----------
+  check("Τράπεζα: μοναδικά id, 4 διαφορετικές επιλογές, έγκυρες κατηγορίες/επίπεδα", () => {
+    const Q = E("QUESTIONS"), C = E("CATEGORIES"), L = E("LEVELS");
+    const ids = new Set(Q.map(q => q.id)), errs = [];
+    if (ids.size !== Q.length) errs.push("διπλά id");
+    for (const q of Q) {
+      if (!C[q.cat]) errs.push(`#${q.id} κατηγορία`);
+      if (!L[q.lvl]) errs.push(`#${q.id} επίπεδο`);
+      for (const lang of ["el", "en"]) {
+        const a = q[lang];
+        if (!Array.isArray(a) || a.length !== 5 || a.some(s => !s || !String(s).trim())) errs.push(`#${q.id} ${lang} μορφή`);
+        else if (new Set(a.slice(1).map(s => s.toLowerCase())).size !== 4) errs.push(`#${q.id} ${lang} διπλές επιλογές`);
+      }
+    }
+    return { ok: !errs.length, detail: errs.length ? errs.slice(0, 5).join("; ") : `${Q.length} ερωτήσεις` };
+  });
+  check("Εξηγήσεις: κάθε ερώτηση έχει εξήγηση ΕΛ/EN και πηγή Wikipedia", () => {
+    const Q = E("QUESTIONS"), X = E("EXPLAIN"), bad = [];
+    for (const q of Q) {
+      const e = X[q.id];
+      if (!e || !e.el || !e.en || !/^(el|en):\S/.test(e.src || "")) bad.push(q.id);
+    }
+    return { ok: !bad.length, detail: bad.length ? `χωρίς πλήρη εξήγηση: ${bad.slice(0, 10).join(",")}` : `${Q.length}/${Q.length}` };
+  });
+  check("Τράπεζα: χωρίς μαθηματικά και χημεία (απόφαση PO)", () => {
+    const Q = E("QUESTIONS"), C = E("CATEGORIES");
+    const chem = Q.filter(q => /χημικ[όή] σύμβολο|ατομικό αριθμό|pH /.test(q.el[0]));
+    return { ok: !C.math && !Q.some(q => q.cat === "math") && !chem.length, detail: chem.map(q => q.id).join(",") };
+  });
+  check("Τράπεζα: ελληνικές απαντήσεις χωρίς λατινικούς χαρακτήρες (εκτός διεθνών συμβόλων)", () => {
+    const ok = /^(?:[A-Z]\d{0,2}|Μποζόνιο [WZ])$/;
+    const bad = E("QUESTIONS").flatMap(q => q.el.slice(1).filter(o => /[A-Za-z]/.test(o) && !ok.test(o)).map(o => `#${q.id} ${o}`));
+    return { ok: !bad.length, detail: bad.slice(0, 5).join("; ") };
+  });
+
+  // ---------- 2. Πρόγραμμα ----------
+  check("Πρόγραμμα: 10 ερωτήσεις/ημέρα, σωστό επίπεδο, καμία επανάληψη, καμία επικάλυψη με εξάσκηση, ≥30 ημέρες", () => {
+    const S = E("SCHEDULE"), P = E("PRACTICE"), BY = E("BY_ID"), errs = [], det = [];
+    for (const l of ["1", "2", "3"]) {
+      const days = Object.entries(S[l]), all = days.flatMap(([, v]) => v);
+      if (days.some(([, v]) => v.length !== 10)) errs.push(`L${l} μέγεθος ημέρας`);
+      if (all.some(id => !BY.has(id) || BY.get(id).lvl !== Number(l))) errs.push(`L${l} λάθος επίπεδο/ανύπαρκτη`);
+      if (new Set(all).size !== all.length) errs.push(`L${l} επανάληψη`);
+      if (P[l].some(id => all.includes(id))) errs.push(`L${l} επικάλυψη εξάσκησης`);
+      if (days.length < 30) errs.push(`L${l} μόνο ${days.length} ημέρες`);
+      det.push(`L${l}: ${days.length} ημ., εξάσκηση ${P[l].length}`);
+    }
+    return { ok: !errs.length, detail: errs.length ? errs.join("; ") : det.join(" · ") };
+  });
+  check("Πρόγραμμα: το σημερινό κουίζ κάθε επιπέδου είναι ακριβώς αυτό του schedule.js", () => {
+    const t = E("todayKey()"), S = E("SCHEDULE");
+    return [1, 2, 3].every(l => {
+      const s = E(`dailySet(todayKey(), ${l})`);
+      return !S[l][t] || (s.scheduled && JSON.stringify(s.questions.map(q => q.id)) === JSON.stringify(S[l][t]));
+    });
+  });
+
+  // ---------- 3. Βαθμολογία ----------
+  check("Βαθμολογία: λάθος = 0, σωστό στο τέλος = 100, σωστό αμέσως = 200, + άμεση γνώση = 250", () => {
+    const f = (...a) => E(`pointsFor(${a.join(",")})`);
+    const ok = f(false, 15000, 15000, true) === 0 && f(true, 0, 15000, false) === 100
+      && f(true, 15000, 15000, false) === 200 && f(true, 15000, 15000, true) === 250 && f(true, 7500, 15000, false) === 150;
+    return { ok, detail: `0/${f(true, 0, 15000, false)}/${f(true, 15000, 15000, false)}/${f(true, 15000, 15000, true)}` };
+  });
+  check("Άμεση γνώση: όριο = 2 δευτ. + 30 χιλ./χαρακτήρα, με ανώτατο 60% του χρόνου", () => {
+    const q = { el: ["α".repeat(50), "β", "γ", "δ", "ε"] };            // 54 χαρακτήρες
+    W().__q = q;
+    const a = E("instantLimitMs(__q, 'el', 20000)"), b = E("instantLimitMs({ el: ['x'.repeat(1000),'a','b','c','d'] }, 'el', 12000)");
+    return { ok: a === 2000 + 30 * 54 && b === 0.6 * 12000, detail: `${a} ms · ανώτατο ${b} ms` };
+  });
+
+  // ---------- 4. Παίκτες ----------
+  await checkAsync("Πρώτη χρήση: εμφανίζεται «Καλώς ήρθες» και δημιουργείται παίκτης", async () => {
+    await load();
+    const welcome = visible("welcome");
+    D("newName").value = "Δοκιμή"; D("createPlayer").click(); await sleep(50);
+    return { ok: welcome && visible("home") && E("P().name") === "Δοκιμή", detail: E("P() && P().name") };
+  });
+  await checkAsync("Ημερήσιο με άμεσες σωστές απαντήσεις: 10 × ⚡, αποθήκευση, σωρευτικό σκορ", async () => {
+    D("startDaily").click(); await sleep(30);
+    let explained = 0, waited = true;
+    for (let i = 0; i < 10; i++) {
+      press(correctKey()); await sleep(20);
+      if (visible("explain") && D("explainText").textContent && D("explainSrc").href.includes("wikipedia.org")) explained++;
+      if (i === 0) { await sleep(600); waited = E("run.i") === 0 && visible("nextBtn"); }   // δεν προχωρά μόνο του
+      D("nextBtn").click(); await sleep(20);
+    }
+    const saved = E("P().days[`${level()}|${todayKey()}`]");
+    const tot = E("totals(P()).points");
+    return { ok: saved && saved.instant === 10 && saved.correct === 10 && saved.grid === "⚡".repeat(10) && tot === saved.score && saved.score >= 2400
+               && explained === 10 && waited,
+             detail: saved ? `σκορ ${saved.score}, ⚡ ${saved.instant}, σύνολο ${tot}, εξηγήσεις ${explained}/10, αναμονή «Επόμενη»: ${waited}` : "δεν αποθηκεύτηκε" };
+  });
+  check("Επιτεύγματα και στατιστικά μετά το πρώτο τέλειο ημερήσιο", () => {
+    const ach = E("P().ach"), st = E("P().stats"), n = Object.values(st).reduce((a, c) => a + c.n, 0);
+    const toast = visible("newAch") && D("newAch").textContent.length > 0;
+    const ok = ach.first && ach.perfect && ach.allInstant && !ach.streak3 && n === 10 && toast;
+    return { ok, detail: `ξεκλείδωτα: ${Object.keys(ach).join(", ")} · απαντήσεις στα στατιστικά: ${n} · ειδοποίηση: ${toast}` };
+  });
+  check("Αποτέλεσμα: ανασκόπηση 10 απαντήσεων με πηγή και κάρτα εικόνας 1080×1080", () => {
+    const items = D("reviewList").children.length;
+    const c = E("drawCard(lastResult)");
+    return { ok: items === 10 && c.width === 1080 && c.height === 1080 && c.toDataURL().length > 20000,
+             detail: `${items} στοιχεία · κάρτα ${c.width}×${c.height}` };
+  });
+  await checkAsync("Σωστή απάντηση μετά από σκέψη: 🟩 χωρίς μπόνους άμεσης γνώσης", async () => {
+    D("startPractice").click(); await sleep(30);
+    E("run.shownAt -= 9000; run.deadline -= 9000");                  // σαν να πέρασαν 9 δευτερόλεπτα
+    const total = E("seconds() * 1000");
+    press(correctKey()); await sleep(10);
+    const g = E("run.grid[0]"), s = E("run.score"), inst = E("run.instant");
+    // χωρίς μπόνους: 100 + ταχύτητα (ο υπόλοιπος χρόνος) — ποτέ +50
+    const expectedMax = 100 + Math.round(100 * (total - 9000) / total);
+    return { ok: g === "🟩" && inst === 0 && s >= 100 && s <= expectedMax, detail: `${g} ${s} πόντοι (μέγιστο χωρίς ⚡: ${expectedMax})` };
+  });
+  await checkAsync("Έξοδος από την εφαρμογή κατά την ερώτηση: ακύρωση (⬛)", async () => {
+    D("nextBtn").click(); await sleep(20);                             // περνά στη 2η ερώτηση
+    Object.defineProperty(W().document, "hidden", { configurable: true, get: () => true });
+    const w = W(); w.document.dispatchEvent(new w.Event("visibilitychange"));
+    delete W().document.hidden;
+    return { ok: E("run.grid[1]") === "⬛" && E("run.leaves") === 1, detail: E("run.grid.join('')") };
+  });
+  await checkAsync("Εξάσκηση: καμία επανάληψη και καμία ερώτηση μελλοντικής ημέρας", async () => {
+    await load(JSON.parse(JSON.stringify({ "fourchoices.v3": JSON.parse(localStorage.getItem("fourchoices.v3")) })));
+    const future = new Set(E("Object.entries(SCHEDULE[level()]).filter(([d]) => d >= todayKey()).flatMap(([, v]) => v)"));
+    const seenBefore = new Set(E("[...SEEN]"));
+    const pool = E("practicePool(level()).map(q => q.id)");
+    const bad = pool.filter(id => future.has(id) || seenBefore.has(id));
+    return { ok: !bad.length && pool.length > 0, detail: `διαθέσιμες ${pool.length}, παραβιάσεις ${bad.length}` };
+  });
+  await checkAsync("PIN: λάθος PIN απορρίπτεται, σωστό γίνεται δεκτό", async () => {
+    D("openPlayers").click(); D("addPlayer").click();
+    D("newName").value = "Κλειδωμένος"; D("newPin").value = "2468"; D("createPlayer").click(); await sleep(100);
+    const lockedId = E("state.current");
+    D("openPlayers").click(); D("logout").click(); await sleep(20);
+    W().selectPlayer(lockedId);
+    D("pinInput").value = "1111"; await W().confirmPin();
+    const rejected = E("state.current") === null;
+    D("pinInput").value = "2468"; await W().confirmPin();
+    return { ok: rejected && E("state.current") === lockedId, detail: rejected ? "λάθος → απόρριψη, σωστό → σύνδεση" : "δέχτηκε λάθος PIN" };
+  });
+  await checkAsync("Κωδικός μεταφοράς: εξαγωγή → διαγραφή → εισαγωγή δίνει ίδιο παίκτη (σκορ, ιστορικό, PIN)", async () => {
+    const id = E("Object.keys(state.profiles).find(k => state.profiles[k].name === 'Δοκιμή')");
+    const before = E(`JSON.stringify(state.profiles['${id}'])`);
+    const code = E(`exportCode('${id}')`);
+    W().deletePlayer(id); W().deletePlayer(id);
+    const gone = !E(`state.profiles['${id}']`);
+    const name = W().importCode(code);
+    const after = E(`JSON.stringify(state.profiles['${id}'])`);
+    let bad = false; try { W().importCode("FC1:δεν-είναι-κωδικός"); } catch { bad = true; }
+    return { ok: gone && name === "Δοκιμή" && after === before && bad, detail: `${code.length} χαρακτήρες· άκυρος κωδικός απορρίφθηκε: ${bad}` };
+  });
+  await checkAsync("Μετάβαση από v2: η παλιά πρόοδος γίνεται «Παίκτης 1»", async () => {
+    await load({ "fourchoices.v2": { lang: "el", level: 2, mode: "sun", days: { "2|2026-10-21": { score: 1500, correct: 8, total: 10, grid: "", leaves: 0 } }, seen: [5, 6, 7] } });
+    const p = E("P()");
+    return { ok: p && p.name === "Παίκτης 1" && p.level === 2 && p.days["2|2026-10-21"].score === 1500 && p.seen.length === 3 && E("state.mode") === "sun",
+             detail: p ? `${p.name}, επίπεδο ${p.level}, ${Object.keys(p.days).length} ημέρα` : "χωρίς παίκτη" };
+  });
+
+  // ---------- 5. Διακοπή ημερήσιου (Β10) ----------
+  const reloadFrom = async snapshot => {            // σαν να «σκοτώθηκε» η εφαρμογή: χωρίς visibilitychange
+    await new Promise(res => { frame.onload = () => res(); frame.src = "about:blank"; });
+    await load(snapshot);
+  };
+  const snap = () => ({ "fourchoices.v3": JSON.parse(localStorage.getItem("fourchoices.v3")) });
+  await checkAsync("Διακοπή ημερήσιου: συνέχιση από το ίδιο σημείο, η ανοιχτή ερώτηση μετρά ως ⬛, καμία επανάληψη", async () => {
+    // Μετά τον έλεγχο 18 ο «Παίκτης 1» δεν έχει παίξει σήμερα.
+    D("startDaily").click(); await sleep(30);
+    const ids = E("run.items.map(it => it.q.id)");
+    press(correctKey()); await sleep(20);
+    D("nextBtn").click(); await sleep(20);                           // η 2η ερώτηση τρέχει
+    const scoreBefore = E("run.score"), first = E("run.grid[0]");
+    await reloadFrom(snap());
+    const k = E("`${level()}|${todayKey()}`");
+    const live = E(`P().live && P().live['${k}']`);
+    const btn = D("startDaily").textContent;
+    const inCode = !!JSON.parse(E("fromB64(exportCode().slice(4))")).live;
+    D("startDaily").click(); await sleep(30);
+    const resumed = visible("game") && E("run.i") === 1 && E("run.answered") && E("run.grid.join('')") === first + "⬛"
+      && E("run.leaves") === 1 && E("run.score") === scoreBefore && D("nextBtn").offsetParent !== null
+      && JSON.stringify(E("run.items.map(it => it.q.id)")) === JSON.stringify(ids);
+    D("nextBtn").click(); await sleep(20);
+    for (let i = 2; i < 10; i++) { press(correctKey()); await sleep(20); D("nextBtn").click(); await sleep(20); }
+    const saved = E(`P().days['${k}']`), noLive = !E("P().live");
+    D("home2").click(); D("startDaily").click(); await sleep(30);
+    const noReplay = visible("result") && !E("run");
+    const ok = live && live.pending && live.done === 1 && /2\/10/.test(btn) && inCode && resumed
+      && saved && saved.grid.length >= 10 && Array.from(saved.grid)[1] === "⬛" && saved.leaves === 1 && saved.correct === 9 && noLive && noReplay;
+    return { ok, detail: `κουμπί «${btn}» · συνέχεια: ${resumed} · πλέγμα ${saved && saved.grid} · έξοδοι ${saved && saved.leaves} · ξαναπαίξιμο: ${!noReplay}` };
+  });
+  await checkAsync("Διακοπή ημερήσιου προηγούμενης ημέρας: κλείνει αυτόματα με τους πόντους που κερδήθηκαν", async () => {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    const y = E(`todayKey(new Date(${d.getTime()}))`), ids = E(`dailySet('${y}', 1).questions.map(q => q.id)`);
+    const st = snap(), p = st["fourchoices.v3"].profiles[st["fourchoices.v3"].current];
+    p.level = 1; delete p.days[`1|${y}`];
+    p.live = { [`1|${y}`]: { ids, orders: ids.map(() => [0, 1, 2, 3]), done: 3, pending: true, score: 480, correct: 2, instant: 1,
+                             grid: ["⚡", "🟩", "🟥"], leaves: 0, times: [1500, 4000, 6000], scheduled: true } };
+    await reloadFrom(st);
+    const day = E(`P().days['1|${y}']`);
+    const ok = day && day.score === 480 && day.correct === 2 && day.grid === "⚡🟩🟥" + "⬛".repeat(7) && day.leaves === 1
+      && day.medianMs === 4000 && !E("P().live") && D("startDaily").textContent === E("T().play");
+    return { ok, detail: day ? `${day.grid} · ${day.score} πόντοι · έξοδοι ${day.leaves}` : "δεν έκλεισε" };
+  });
+
+  // ---------- 6. Έκδοση κανόνων βαθμολογίας (Β9) ----------
+  // Ιστορικό εκδόσεων: όποιος αλλάζει SCORE/INSTANT χωρίς νέα έκδοση RULES (και νέα γραμμή εδώ) αποτυγχάνει σε αυτόν τον έλεγχο.
+  const RULES_HISTORY = { 1: { base: 100, speedMax: 100, instant: 50, baseMs: 2000, perCharMs: 30, maxShare: 0.6 } };
+  check("Κανόνες βαθμολογίας: έκδοση σε κάθε αποτέλεσμα, σταθερές ίδιες με το ιστορικό εκδόσεων, παλιά αποτελέσματα ανέγγιχτα", () => {
+    const v = E("RULES"), cur = { ...E("SCORE"), ...E("INSTANT") }, hist = RULES_HISTORY[v];
+    const sameRules = !!hist && Object.keys(hist).length === Object.keys(cur).length && Object.keys(hist).every(k => hist[k] === cur[k]);
+    const days = E("P().days"), k = E("`2|${todayKey()}`");
+    const played = days[k] && days[k].rules === v;                                   // ημερήσιο του ελέγχου 19 (2 επίπεδο)
+    const closed = Object.entries(days).some(([d, x]) => d.startsWith("1|") && x.leaves === 1 && x.rules === 1);   // έλεγχος 20
+    const legacy = days["2|2026-10-21"] && days["2|2026-10-21"].rules === undefined && days["2|2026-10-21"].score === 1500;
+    E("P().level = 2"); E("goHome()"); D("startDaily").click();                     // σημερινό αποτέλεσμα του ελέγχου 19
+    const shown = D("resultRules").textContent === E(`T().rulesOf(${v})`);
+    const code = E("exportCode()");
+    let bad = false; try {
+      const j = JSON.parse(E(`fromB64(${JSON.stringify(code.slice(4))})`)); j.id = "pzz"; j.name = "Κακός"; j.days[k].rules = "1";
+      W().importCode("FC1:" + E(`toB64(${JSON.stringify(JSON.stringify(j))})`));
+    } catch { bad = true; }
+    const ok = Number.isInteger(v) && sameRules && played && closed && legacy && shown && bad;
+    return { ok, detail: `έκδοση ${v} · σταθερές ${sameRules ? "ίδιες" : "ΔΙΑΦΟΡΕΤΙΚΕΣ"} · ένδειξη «${D("resultRules").textContent}» · παλιό αποτέλεσμα ανέγγιχτο: ${!!legacy} · άκυρη έκδοση απορρίφθηκε: ${bad}` };
+  });
+
+  // ---------- 7. Πρόκληση φίλου (Β1) ----------
+  let chCode = "", chOrders = "", creatorId = "";
+  const wrongKey = () => String(1 + E("run.items[run.i].order.findIndex(o => o !== 0)"));
+  await checkAsync("Πρόκληση: δημιουργία με 10 αθέατες ερωτήσεις εκτός πρόσφατων/μελλοντικών ημερήσιων, χωρίς επίδραση στο σωρευτικό", async () => {
+    E("P().level = 1"); E("goHome()");
+    creatorId = E("state.current");
+    const seenBefore = new Set(E("[...SEEN]")), totBefore = E("totals(P()).points"), enabled = !D("startChallenge").disabled;
+    D("startChallenge").click(); await sleep(30);
+    const ids = E("run.items.map(it => it.q.id)"), recent = new Set(E("[...recentDailyIds(1)]"));
+    chOrders = JSON.stringify(E("run.items.map(it => it.order)"));
+    const poolOk = ids.length === 10 && new Set(ids).size === 10 && ids.every(id => !recent.has(id) && !seenBefore.has(id) && E(`BY_ID.get(${id}).lvl`) === 1);
+    for (let i = 0; i < 10; i++) { press(correctKey()); await sleep(20); D("nextBtn").click(); await sleep(20); }
+    const r = E("lastResult");
+    chCode = E("challengeCode(lastResult.challenge, lastResult)");
+    const back = E(`parseChallenge(${JSON.stringify("κείμενο… " + chCode + " …")})`);
+    const ok = enabled && poolOk && visible("result") && r.mode === "challenge" && D("share").textContent === E("T().sendChallenge")
+      && visible("vsBox") && JSON.stringify(back.ids) === JSON.stringify(ids) && back.from.score === r.score && back.from.grid === r.grid
+      && E(`P().challenges['${r.challenge.cid}'].done`) === true && E("totals(P()).points") === totBefore
+      && /^C1-[0-9a-z.\-]+$/.test(chCode) && !chCode.includes(E("P().name"));
+    return { ok, detail: `${chCode.length} χαρακτήρες · ερωτήσεις έγκυρες: ${poolOk} · σωρευτικό αμετάβλητο: ${E("totals(P()).points") === totBefore}` };
+  });
+  await checkAsync("Πρόκληση: ο φίλος ανοίγει τον σύνδεσμο, παίζει τις ίδιες ερωτήσεις με ίδια σειρά, βλέπει σύγκριση, δεν ξαναπαίζει", async () => {
+    W().openWelcome(); D("newName").value = "Φίλος"; D("createPlayer").click(); await sleep(50);
+    const st = snap();
+    await new Promise(res => { frame.onload = () => res(); frame.src = "about:blank"; });
+    KEYS.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem("fourchoices.v3", JSON.stringify(st["fourchoices.v3"]));
+    await new Promise(res => { frame.onload = () => res(); frame.src = `../index.html?t=${Date.now()}#c=${chCode}`; });
+    const intro = visible("challenge") && D("chFrom").textContent.length > 0 && D("chAccept").textContent === E("T().chAccept")
+      && D("openPlayers").textContent.includes("Φίλος")
+      && D("chGrid").textContent === E("parseChallenge(" + JSON.stringify(chCode) + ").from.grid");
+    const hashGone = W().location.hash === "";
+    D("chAccept").click(); await sleep(30);
+    const same = E("run.mode") === "challenge" && JSON.stringify(E("run.items.map(it => it.order)")) === chOrders;
+    press(wrongKey()); await sleep(20); D("nextBtn").click(); await sleep(20);
+    for (let i = 1; i < 10; i++) { press(correctKey()); await sleep(20); D("nextBtn").click(); await sleep(20); }
+    const lost = D("vsBox").textContent.startsWith(E("T().lose")) && D("share").textContent === E("T().sendReply");
+    const reply = E("challengeCode(lastResult.challenge, lastResult)");
+    D("home2").click(); W().openChallenge(chCode);
+    const noReplay = visible("result") && !E("run") && D("vsBox").textContent.startsWith(E("T().lose"));
+    W().selectPlayer(creatorId); W().openChallenge(reply);                       // ο δημιουργός βλέπει την απάντηση
+    const creatorWins = visible("result") && D("vsBox").textContent.startsWith(E("T().win"));
+    const err = t => { try { E(`parseChallenge(${JSON.stringify(t)})`); return "ok"; } catch (e) { return e.message; } };
+    const todayIds = E("dailySet(todayKey(), 1).questions.map(q => q.id.toString(36)).join('.')");
+    const bad = err("C1-xyz") === "format" && err(`C1-1-a-${todayIds}-100-1-0-3000000000-1`) === "future"
+      && err(chCode.replace(/^(C1-\d-[0-9a-z]+-)[0-9a-z]+/, "$1zzzzz")) === "bank";
+    const ok = intro && hashGone && same && lost && noReplay && creatorWins && bad;
+    return { ok, detail: `εισαγωγή: ${intro} · ίδια σειρά: ${same} · σύγκριση: ${lost} · χωρίς δεύτερη προσπάθεια: ${noReplay} · απάντηση στον δημιουργό: ${creatorWins} · άκυροι κωδικοί: ${bad}` };
+  });
+
+  // ---------- 8. Χαλαρή εξάσκηση χωρίς χρονόμετρο (Β2) ----------
+  await checkAsync("Χαλαρή εξάσκηση: χωρίς χρονόμετρο, χωρίς πόντους/⚡, χωρίς ακύρωση στην έξοδο, καμία επίδραση στη βαθμολογία", async () => {
+    E("goHome()");
+    const seenBefore = E("SEEN.size"), totBefore = E("totals(P()).points"), daysBefore = E("Object.keys(P().days).length");
+    const statsBefore = E("Object.values(P().stats).reduce((a, c) => a + c.n, 0)");
+    D("startRelaxed").click(); await sleep(30);
+    const noBar = E("run.mode") === "relaxed" && D("game").classList.contains("relaxed") && D("timeLeft").textContent === E("T().noTimer");
+    E("run.shownAt -= 120000; run.deadline -= 120000"); await sleep(300);            // «πέρασαν» 2 λεπτά
+    const noTimeout = !E("run.answered");
+    Object.defineProperty(W().document, "hidden", { configurable: true, get: () => true });
+    { const w = W(); w.document.dispatchEvent(new w.Event("visibilitychange")); }
+    delete W().document.hidden;
+    const notVoided = !E("run.answered") && E("run.leaves") === 0;
+    press(correctKey()); await sleep(20);
+    const first = E("run.grid[0]") === "🟩" && E("run.score") === 0 && E("run.instant") === 0;
+    D("nextBtn").click(); await sleep(20);
+    for (let i = 1; i < 10; i++) { press(i % 3 ? correctKey() : wrongKey()); await sleep(20); D("nextBtn").click(); await sleep(20); }
+    const r = E("lastResult");
+    const result = visible("result") && r.mode === "relaxed" && r.score === 0 && !r.rules && D("resultScore").textContent === `${r.correct}/10`
+      && D("fairBadge").classList.contains("hidden") && D("share").classList.contains("hidden") && D("again").textContent === E("T().relaxed")
+      && !/[⚡⬜⬛]/.test(r.grid);
+    const untouched = E("totals(P()).points") === totBefore && E("Object.keys(P().days).length") === daysBefore
+      && E("SEEN.size") === seenBefore + 10 && E("Object.values(P().stats).reduce((a, c) => a + c.n, 0)") === statsBefore + 10;
+    const ok = noBar && noTimeout && notVoided && first && result && untouched;
+    return { ok, detail: `χωρίς χρόνο: ${noBar && noTimeout} · έξοδος χωρίς ακύρωση: ${notVoided} · αποτέλεσμα ${r.correct}/10 ${r.grid} · βαθμολογία ανέγγιχτη: ${untouched}` };
+  });
+
+  // ---------- 9. Δείκτες Γνώση/Ταχύτητα και ιστορικό (Β3/Β11) ----------
+  check("Δείκτες και ιστορικό: Γνώση = σωστές ÷ ερωτήσεις (λήξη/έξοδος = λάθος), διάμεσος/μέσος χρόνος, ανά επίπεδο, λίστα παιχνιδιών", () => {
+    // Ανεξάρτητος υπολογισμός από τα ίδια δεδομένα του παίκτη (ημερήσια των ελέγχων 18–20).
+    const days = Object.values(E("P().days")), chs = Object.values(E("P().challenges || {}")).filter(c => c.done);
+    const q = days.reduce((a, d) => a + (d.total || 10), 0), ok = days.reduce((a, d) => a + d.correct, 0);
+    const times = days.flatMap(d => Array.isArray(d.times) ? d.times : []).sort((a, b) => a - b), h = times.length >> 1;
+    const med = times.length % 2 ? times[h] : Math.round((times[h - 1] + times[h]) / 2);
+    const mean = times.reduce((a, b) => a + b, 0) / times.length;
+    const k = E("indicators(P())");
+    const calc = Math.abs(k.knowledge - ok / q) < 1e-9 && k.medianMs === med && Math.abs(k.meanMs - mean) < 1e-6 && k.days === days.length;
+    const today = E("P().days[`2|${todayKey()}`]");
+    const stored = Array.isArray(today.times) && today.times.length === 9;           // 10 ερωτήσεις, 1 έξοδος (έλεγχος 19)
+    const lvlSum = [1, 2, 3].reduce((a, l) => a + E(`indicators(P(), ${l})`).days, 0) === days.length;
+    E("openProfile()");
+    const shown = D("kpiKnow").textContent === `${Math.round(100 * ok / q)}%` && D("lvlBody").children.length === 4;
+    const rows = D("histList").children.length, expected = days.length + chs.length;
+    D("histList").querySelector("button").click();                                  // νεότερο: το σημερινό ημερήσιο
+    const opened = visible("result") && E("lastResult.key") === E("todayKey()") && D("reviewList").children.length === 10;
+    const ok2 = calc && stored && lvlSum && shown && rows === expected && opened;
+    return { ok: ok2, detail: `Γνώση ${D("kpiKnow").textContent} (${ok}/${q}) · διάμεσος ${med} ms από ${times.length} απαντήσεις · ιστορικό ${rows}/${expected} · άνοιγμα: ${opened}` };
+  });
+
+  // ---------- 10. Σχέδιο δοκιμών (Β12): T03 λήξη χρόνου, T04 διπλό πάτημα, T07 αλλαγή γλώσσας ----------
+  const optBtn = v => [...D("options").children].find(b => b.dataset.opt === String(v));
+  await checkAsync("Λήξη χρόνου: ⬜, 0 πόντοι, μήνυμα «Τέλος χρόνου», μετρά ως απάντηση στα στατιστικά", async () => {
+    E("goHome()"); E("start('practice')"); await sleep(30);
+    const n0 = E("Object.values(P().stats).reduce((a, c) => a + c.n, 0)");
+    E("run.deadline = performance.now() - 1"); E("tick()"); await sleep(20);
+    const ok = E("run.answered") && E("run.grid[0]") === "⬜" && E("run.score") === 0 && D("feedback").textContent === E("T().timeout")
+      && optBtn(0).classList.contains("correct") && visible("nextBtn") && E("Object.values(P().stats).reduce((a, c) => a + c.n, 0)") === n0 + 1;
+    return { ok, detail: `πλέγμα ${E("run.grid.join('')")} · σκορ ${E("run.score")} · «${D("feedback").textContent}»` };
+  });
+  await checkAsync("Διπλό πάτημα: δεύτερο πάτημα σε επιλογή ή «Επόμενη» δεν μετρά δεύτερη φορά", async () => {
+    D("nextBtn").click(); await sleep(20);                                       // 2η ερώτηση
+    const b = optBtn(0);
+    b.click(); b.click(); optBtn(1).click(); press(correctKey()); await sleep(20);  // διπλό πάτημα + άλλη επιλογή + πλήκτρο
+    const once = E("run.grid.length") === 2 && E("run.grid[1]") !== "🟥" && E("run.score") <= 250 && E("run.correct") === 1;
+    const next = D("nextBtn"); next.click(); next.click(); await sleep(20);         // διπλό πάτημα «Επόμενη»
+    const one = E("run.i") === 2 && !E("run.answered") && E("run.grid.length") === 2;
+    press(correctKey()); press(correctKey()); await sleep(20);                      // διπλό πλήκτρο
+    const key = E("run.grid.length") === 3;
+    return { ok: once && one && key, detail: `μία απάντηση: ${once} · μία μετάβαση: ${one} · διπλό πλήκτρο: ${key} · πλέγμα ${E("run.grid.join('')")}` };
+  });
+  await checkAsync("Αλλαγή γλώσσας στη μέση ερώτησης: ίδια σειρά επιλογών, ίδιος χρόνος, η κατάσταση απάντησης διατηρείται", async () => {
+    D("nextBtn").click(); await sleep(20);                                       // 4η ερώτηση, τρέχει
+    const q = E("run.items[run.i].q"), order = E("run.items[run.i].order"), deadline = E("run.deadline");
+    W().document.querySelector('header .seg button[data-lang="en"]').click(); await sleep(20);
+    const texts = [...D("options").children].map(b => b.children[1].textContent);
+    const mid = E("state.lang") === "en" && D("question").textContent === q.en[0] && JSON.stringify(texts) === JSON.stringify(order.map(o => q.en[1 + o]))
+      && E("run.deadline") === deadline && !E("run.answered") && D("options").children[0].children[0].textContent === "A";
+    press(correctKey()); await sleep(20);
+    W().document.querySelector('header .seg button[data-lang="el"]').click(); await sleep(20);
+    const after = E("state.lang") === "el" && D("question").textContent === q.el[0] && optBtn(0).classList.contains("correct")
+      && optBtn(0).disabled && D("explainText").textContent === E(`EXPLAIN[${q.id}].el`) && visible("nextBtn")
+      && D("options").children[0].children[0].textContent === "Α";
+    return { ok: mid && after, detail: `κατά τη διάρκεια: ${mid} · μετά την απάντηση: ${after}` };
+  });
+
+  // ---------- επαναφορά ----------
+  KEYS.forEach(k => { if (backup[k] === null) localStorage.removeItem(k); else localStorage.setItem(k, backup[k]); });
+  frame.src = "about:blank";
+  const s = document.getElementById("summary");
+  s.textContent = failed ? `${failed} από ${n} έλεγχοι ΑΠΕΤΥΧΑΝ` : `Όλοι οι ${n} έλεγχοι πέτυχαν`;
+  s.className = failed ? "fail" : "pass";
+  window.SELFTEST = { total: n, failed };
+}
+run();
+</script>
+</body>
+</html>
