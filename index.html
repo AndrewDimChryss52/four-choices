@@ -103,6 +103,13 @@
   .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
   :root[data-mode="sun"] .bar { height: 12px; }
   .bar > div { height: 100%; background: var(--timer); width: 100%; transform-origin: left; }
+  /* Ομιλία: «Άκουσε ξανά», «Σταμάτα» */
+  .speechrow { display: flex; gap: 8px; align-items: center; }
+  .speechrow .chip { max-width: none; }
+  /* Κλεψύδρα: τα τελευταία δευτερόλεπτα η μπάρα και ο αριθμός γίνονται κόκκινα και η μπάρα «πάλλεται» */
+  #game.urgent #timerBar { background: var(--bad); animation: fc-pulse .8s ease-in-out infinite alternate; }
+  #game.urgent #timeLeft { color: var(--bad); font-weight: 800; }
+  @keyframes fc-pulse { from { opacity: 1; } to { opacity: .45; } }
   /* Το κείμενο του παιχνιδιού δεν επιλέγεται/αντιγράφεται (δυσκολεύει το «αντιγραφή → επικόλληση σε ΤΝ») */
   #shareMsg { white-space: pre-line; -webkit-user-select: text; user-select: text; }
   #game { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -319,6 +326,11 @@
       <p class="muted small" id="modeHint" style="margin-top:6px"></p>
     </div>
     <div>
+      <h2 data-t="speech"></h2>
+      <div id="voices" class="seg wide" role="group"></div>
+      <p class="muted small" id="voiceHint" style="margin-top:6px"></p>
+    </div>
+    <div>
       <h2 data-t="scoringTitle"></h2>
       <p class="muted small" data-t="scoringText"></p>
     </div>
@@ -340,6 +352,10 @@
     <div class="meta"><span id="progress"></span><span id="category"></span><span id="timeLeft"></span></div>
     <div class="bar" aria-hidden="true"><div id="timerBar"></div></div>
     <p id="question" class="question"></p>
+    <div id="speechRow" class="speechrow hidden">
+      <button id="speakAgain" class="chip" type="button" data-t="speakAgain"></button>
+      <button id="speakStop" class="chip" type="button" data-t="speakStop"></button>
+    </div>
     <div id="options" class="options"></div>
     <div id="feedback" class="feedback"></div>
     <div id="explain" class="explain hidden">
@@ -436,6 +452,13 @@ const UI = {
     offSchedule: "Το πρόγραμμα ημερών έχει τελειώσει για αυτό το επίπεδο· οι ερωτήσεις μπορεί να επαναλαμβάνονται.",
     settings: "Ρυθμίσεις", display: "Εμφάνιση", back: "Επιστροφή",
     modes: { auto: "Αυτόματο", sun: "Φως ήλιου", saver: "Μπαταρία" },
+    speech: "Ανάγνωση ερωτήσεων", voices: { off: "Όχι", female: "Γυναικεία φωνή", male: "Ανδρική φωνή" },
+    speechOff: "Η ερώτηση και οι επιλογές διαβάζονται φωναχτά με φωνή της συσκευής· ο χρόνος τρέχει κανονικά.",
+    speechVoice: n => `Φωνή της συσκευής: ${n} (τοπικά, χωρίς σύνδεση). Ο χρόνος τρέχει κανονικά.`,
+    speechFallback: (w, n) => `Δεν βρέθηκε ${w === "female" ? "γυναικεία" : "ανδρική"} φωνή στη συσκευή· χρησιμοποιείται: ${n}.`,
+    speechNone: "Δεν βρέθηκε ελληνική φωνή αποθηκευμένη στη συσκευή. Προσθέστε μία από τις ρυθμίσεις «Μετατροπή κειμένου σε ομιλία» του κινητού.",
+    speechUnsupported: "Αυτός ο browser δεν υποστηρίζει ανάγνωση.",
+    speechSample: "Καλώς ήρθες στο Four Choices.", speakAgain: "🔊 Άκουσε ξανά", speakStop: "■ Σταμάτα",
     modeHint: {
       auto: "Ακολουθεί το θέμα του κινητού και περνά σε εξοικονόμηση όταν η μπαταρία πέσει κάτω από 20%.",
       sun: "Μέγιστη αντίθεση και μεγαλύτερα γράμματα για ανάγνωση σε δυνατό φως.",
@@ -528,6 +551,13 @@ const UI = {
     offSchedule: "The daily schedule has run out for this level; questions may repeat.",
     settings: "Settings", display: "Display", back: "Back",
     modes: { auto: "Auto", sun: "Sunlight", saver: "Battery" },
+    speech: "Read questions aloud", voices: { off: "Off", female: "Female voice", male: "Male voice" },
+    speechOff: "The question and choices are read aloud with a voice from your device; the timer runs as usual.",
+    speechVoice: n => `Device voice: ${n} (on the device, no connection). The timer runs as usual.`,
+    speechFallback: (w, n) => `No ${w} voice found on this device; using: ${n}.`,
+    speechNone: "No English voice is stored on this device. Add one in your phone's text-to-speech settings.",
+    speechUnsupported: "This browser cannot read text aloud.",
+    speechSample: "Welcome to Four Choices.", speakAgain: "🔊 Listen again", speakStop: "■ Stop",
     modeHint: {
       auto: "Follows your phone's theme and switches to battery saving below 20% charge.",
       sun: "Maximum contrast and larger text for reading in bright light.",
@@ -648,6 +678,7 @@ function migrate() {
 const state = migrate();
 if (!UI[state.lang]) state.lang = (navigator.language || "el").toLowerCase().startsWith("el") ? "el" : "en";
 if (!["auto", "sun", "saver"].includes(state.mode)) state.mode = "auto";
+if (!["off", "female", "male"].includes(state.voice)) state.voice = "off";
 const P = () => state.profiles[state.current] || null;   // τρέχων παίκτης
 let SEEN = new Set();
 function loadPlayer() {
@@ -667,6 +698,48 @@ function markSeen(id) {
   SEEN.add(id); p.seen = [...SEEN]; save();
 }
 const level = () => (P() ? P().level : 1);
+
+// ---------- ομιλία: ανάγνωση ερωτήσεων (D28) ----------
+// Μόνο φωνές αποθηκευμένες στη συσκευή (localService): οι «διαδικτυακές» φωνές στέλνουν το κείμενο σε server (Κ3).
+// Οι συσκευές δεν δηλώνουν φύλο/ηλικία φωνής· το φύλο εκτιμάται από το όνομα, το ήρεμο ύφος από ρυθμό και τόνο.
+const TTS = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+const VOICE_NAMES = {
+  female: /melina|athina|eleni|maria|zira|hazel|susan|samantha|karen|moira|tessa|fiona|victoria|catherine|serena|kate|libby|sonia|aria|jenny|\bfemale\b|γυναικ/i,
+  male: /stefanos|nikos|nikolaos|dimitris|kostas|giorgos|david|mark|george|james|daniel|\balex\b|fred|\btom\b|oliver|arthur|ryan|\bguy\b|\bmale\b|ανδρ/i
+};
+const VOICE_STYLE = { female: { rate: 0.9, pitch: 0.95 }, male: { rate: 0.9, pitch: 0.9 } };
+function pickVoice(lang = state.lang, want = state.voice) {
+  if (!TTS || want === "off") return { voice: null };
+  const local = speechSynthesis.getVoices().filter(v => v.localService && (v.lang || "").toLowerCase().startsWith(lang));
+  const other = want === "female" ? "male" : "female";
+  const match = local.find(v => VOICE_NAMES[want].test(v.name) && !VOICE_NAMES[other].test(v.name));
+  return { voice: match || local[0] || null, fallback: !match && local.length > 0 };
+}
+function voiceHint() {
+  if (!TTS) return T().speechUnsupported;
+  if (state.voice === "off") return T().speechOff;
+  const { voice, fallback } = pickVoice();
+  return !voice ? T().speechNone : fallback ? T().speechFallback(state.voice, voice.name) : T().speechVoice(voice.name);
+}
+function stopSpeech() { if (TTS) speechSynthesis.cancel(); }
+function speakText(text) {
+  stopSpeech();
+  const { voice } = pickVoice();
+  if (!voice || !text) return false;
+  const u = new SpeechSynthesisUtterance(text), style = VOICE_STYLE[state.voice];
+  u.voice = voice; u.lang = voice.lang; u.rate = style.rate; u.pitch = style.pitch;
+  speechSynthesis.speak(u);
+  return true;
+}
+function renderSpeechRow() {
+  $("speechRow").classList.toggle("hidden", !(run && pickVoice().voice));
+}
+function speakQuestion() {
+  renderSpeechRow();
+  if (!run) return;
+  const { q, order } = run.items[run.i], d = q[state.lang];
+  speakText(`${d[0]} ` + order.map((o, pos) => `${T().keys[pos]}: ${d[1 + o]}.`).join(" "));
+}
 
 // ---------- ερωτήσεις και πρόγραμμα ----------
 const BY_ID = new Map(QUESTIONS.map(q => [q.id, q]));
@@ -844,6 +917,11 @@ function applyLang() {
     applyLang();
   });
   buildSeg($("modes"), Object.entries(T().modes), state.mode, m => { state.mode = m; save(); applyMode(); applyLang(); });
+  buildSeg($("voices"), Object.entries(T().voices), state.voice, v => {
+    state.voice = v; save(); applyLang();
+    if (v !== "off") speakText(T().speechSample);                     // δείγμα της φωνής που επιλέχτηκε
+  });
+  $("voiceHint").textContent = voiceHint();
   $("modeHint").textContent = T().modeHint[state.mode];
   $("bankInfo").textContent = T().bankInfo(QUESTIONS.length, BANK_VERSION,
     Object.keys(LEVELS).map(l => `${LEVELS[l][state.lang]} ${scheduleEnd(l)}`).join(" · "));
@@ -1278,6 +1356,7 @@ function nextQuestion() {
   run.deadline = run.shownAt + seconds() * 1000;
   renderQuestion(false);
   if (run.mode !== "relaxed") tick();   // χαλαρή εξάσκηση (Β2): χωρίς χρονόμετρο
+  speakQuestion();                      // ομιλία (D28): ο χρόνος έχει ήδη ξεκινήσει και τρέχει κανονικά
 }
 
 function renderQuestion(keepState) {
@@ -1286,6 +1365,8 @@ function renderQuestion(keepState) {
   $("progress").textContent = `${T().q} ${run.i + 1}/${run.items.length}`;
   $("category").textContent = CATEGORIES[q.cat][state.lang];
   $("game").classList.toggle("relaxed", run.mode === "relaxed");
+  if (!keepState) $("game").classList.remove("urgent");
+  renderSpeechRow();
   if (run.mode === "relaxed") $("timeLeft").textContent = T().noTimer;
   $("question").textContent = data[0];
   const box = $("options");
@@ -1322,6 +1403,8 @@ function advance() {
 }
 
 // Στην εξοικονόμηση το χρονόμετρο ανανεώνεται 4 φορές/δευτ. αντί για ~60 (λιγότερη δουλειά για CPU/οθόνη).
+// Κλεψύδρα: «επείγον» τα τελευταία 5″, ή το τελευταίο 35% σε πολύ σύντομο χρόνο (Expert 12″ → 4,2″).
+const urgentMs = total => Math.min(5000, 0.35 * total);
 function tick() {
   clearTimeout(timerId); cancelAnimationFrame(timerId);
   const total = seconds() * 1000;
@@ -1329,7 +1412,8 @@ function tick() {
     if (!run || run.answered) return;
     const left = Math.max(0, run.deadline - performance.now());
     $("timerBar").style.transform = `scaleX(${left / total})`;
-    $("timeLeft").textContent = `${Math.ceil(left / 1000)}${T().s}`;
+    $("timeLeft").textContent = `⏳ ${Math.ceil(left / 1000)}${T().s}`;
+    $("game").classList.toggle("urgent", left <= urgentMs(total));
     if (left <= 0) return answer(null);
     timerId = effectiveMode() === "saver" ? setTimeout(step, 250) : requestAnimationFrame(step);
   };
@@ -1340,6 +1424,8 @@ function tick() {
 function answer(optIdx, reason) {
   if (!run || run.answered) return;
   run.answered = true;
+  stopSpeech();
+  $("game").classList.remove("urgent");
   clearTimeout(timerId); cancelAnimationFrame(timerId);
   const now = performance.now(), total = seconds() * 1000;
   const left = Math.max(0, run.deadline - now), elapsed = now - run.shownAt;
@@ -1371,6 +1457,7 @@ function answer(optIdx, reason) {
 
 // Άμυνα: αν η εφαρμογή κρυφτεί ενώ τρέχει ερώτηση (αλλαγή εφαρμογής/καρτέλας), η ερώτηση ακυρώνεται.
 document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopSpeech();
   if (document.hidden && run && !run.answered && run.mode !== "relaxed") { run.leaves++; answer(null, "left"); }
 });
 // Άμυνα: χωρίς αντιγραφή, αποκοπή, σύρσιμο ή μενού παρατεταμένου πατήματος πάνω στις ερωτήσεις.
@@ -1378,6 +1465,7 @@ document.addEventListener("visibilitychange", () => {
   $("game").addEventListener(ev, e => e.preventDefault()));
 
 function finish() {
+  stopSpeech();
   const r = {
     mode: run.mode, key: run.key, level: run.level, score: run.score, correct: run.correct, instant: run.instant,
     total: run.items.length, grid: run.grid.join(""), leaves: run.leaves, scheduled: run.scheduled, rules: run.rules,
@@ -1686,6 +1774,9 @@ $("closeProfile").addEventListener("click", () => {
 });
 $("openSettings").addEventListener("click", () => { $("refreshMsg").textContent = ""; applyLang(); show("settings"); });
 $("closeSettings").addEventListener("click", goHome);
+$("speakAgain").addEventListener("click", speakQuestion);
+$("speakStop").addEventListener("click", stopSpeech);
+if (TTS) speechSynthesis.onvoiceschanged = () => { if (!$("settings").classList.contains("hidden")) applyLang(); if (run) renderSpeechRow(); };
 $("refresh").addEventListener("click", refreshQuestions);
 $("openPlayers").addEventListener("click", openPlayers);
 $("closePlayers").addEventListener("click", goHome);

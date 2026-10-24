@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -435,6 +435,54 @@ async function run() {
       && optBtn(0).disabled && D("explainText").textContent === E(`EXPLAIN[${q.id}].el`) && visible("nextBtn")
       && D("options").children[0].children[0].textContent === "Α";
     return { ok: mid && after, detail: `κατά τη διάρκεια: ${mid} · μετά την απάντηση: ${after}` };
+  });
+
+  // ---------- 11. Ανάγνωση ερωτήσεων (D28) και κλεψύδρα ----------
+  await checkAsync("Ανάγνωση: μόνο τοπικές φωνές, γυναικεία/ανδρική, ίδια σειρά επιλογών, «Άκουσε ξανά», σταματά στην απάντηση, ο χρόνος δεν αλλάζει", async () => {
+    const w = W(), spoken = [], origUtt = w.SpeechSynthesisUtterance;
+    let cancels = 0;
+    const voices = [{ name: "Microsoft Stefanos - Greek (Greece)", lang: "el-GR", localService: true },
+                    { name: "Melina", lang: "el-GR", localService: true },
+                    { name: "Online Athina (Natural)", lang: "el-GR", localService: false }];
+    w.speechSynthesis.getVoices = () => voices;                                     // ελεγχόμενες φωνές
+    w.speechSynthesis.speak = u => spoken.push(u);
+    w.speechSynthesis.cancel = () => { cancels++; };
+    w.SpeechSynthesisUtterance = function (t) { this.text = t; };
+    try {
+      E("state.voice = 'female'"); E("goHome()"); E("start('practice')"); await sleep(30);
+      const u = spoken[spoken.length - 1], q = E("run.items[run.i].q"), order = E("run.items[run.i].order"), keys = E("T().keys");
+      const text = !!u && u.text.startsWith(q.el[0]) && order.every((o, pos) => u.text.includes(`${keys[pos]}: ${q.el[1 + o]}.`));
+      const female = !!u && u.voice.name === "Melina" && u.rate === 0.9 && visible("speechRow");
+      const timer = E("run.deadline - run.shownAt") === E("seconds() * 1000");
+      const n0 = spoken.length; D("speakAgain").click();
+      const again = spoken.length === n0 + 1;
+      const c0 = cancels; press(correctKey()); await sleep(20);
+      const stops = cancels > c0;
+      E("state.voice = 'male'"); D("nextBtn").click(); await sleep(20);
+      const male = spoken[spoken.length - 1].voice.name.startsWith("Microsoft Stefanos");
+      voices.splice(0, 2);                                                         // μένει μόνο διαδικτυακή φωνή
+      E("renderSpeechRow()");
+      const noRemote = !visible("speechRow") && E("pickVoice().voice") === null && E("voiceHint()") === E("T().speechNone");
+      E("state.voice = 'off'"); voices.unshift({ name: "Melina", lang: "el-GR", localService: true }); E("renderSpeechRow()");
+      const off = !visible("speechRow");
+      const ok = text && female && timer && again && stops && male && noRemote && off;
+      return { ok, detail: `κείμενο: ${text} · γυναικεία: ${female} · ανδρική: ${male} · χρόνος ίδιος: ${timer} · ξανά: ${again} · σταματά: ${stops} · χωρίς διαδικτυακή: ${noRemote} · όχι: ${off}` };
+    } finally {
+      E("state.voice = 'off'");
+      ["getVoices", "speak", "cancel"].forEach(k => { delete w.speechSynthesis[k]; });
+      w.SpeechSynthesisUtterance = origUtt;
+    }
+  });
+  await checkAsync("Κλεψύδρα: τα τελευταία δευτερόλεπτα η μπάρα και ο αριθμός γίνονται κόκκινα· σβήνει με την απάντηση", async () => {
+    const limits = E("urgentMs(20000)") === 5000 && E("urgentMs(15000)") === 5000 && E("urgentMs(12000)") === 4200;
+    E("run.deadline = performance.now() + 10000"); E("tick()");
+    const calm = !D("game").classList.contains("urgent") && D("timeLeft").textContent.startsWith("⏳");
+    E("run.deadline = performance.now() + 3000"); E("tick()");
+    const red = W().getComputedStyle(D("timerBar")).backgroundColor, timerColor = W().getComputedStyle(D("timeLeft")).color;
+    const urgent = D("game").classList.contains("urgent") && red === timerColor && W().getComputedStyle(D("timerBar")).animationName === "fc-pulse";
+    press(correctKey()); await sleep(20);
+    const cleared = !D("game").classList.contains("urgent");
+    return { ok: limits && calm && urgent && cleared, detail: `όρια 5″/5″/4,2″: ${limits} · ήρεμο: ${calm} · κόκκινο: ${urgent} · σβήνει: ${cleared}` };
   });
 
   // ---------- επαναφορά ----------
