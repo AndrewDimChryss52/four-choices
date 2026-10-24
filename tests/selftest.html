@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -527,6 +527,15 @@ async function run() {
     E("renderVoiceList()");
     const voices = D("voiceList").children.length > 0;
     return { ok: fmt && meanwhile && ready && voices, detail: `μορφή: ${fmt} · «ως τότε»: ${meanwhile} · «έτοιμο»: ${ready} · λίστα φωνών: ${voices}` };
+  });
+
+  check("Ανάγνωση σε browser εφαρμογής (Viber/WhatsApp/WebView): σωστή αναγνώριση και σαφές μήνυμα", () => {
+    const re = /; wv\)|FBAN|FBAV|Instagram|Viber|WhatsApp|Line\//i;
+    const webview = "Mozilla/5.0 (Linux; Android 14; SM-A546B Build/UP1A; wv) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36";
+    const chrome = "Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36";
+    const same = String(E("IN_APP")) === String(re.test(navigator.userAgent));
+    const ok = re.test(webview) && !re.test(chrome) && same && E("noSpeechText()") === E("T().speechUnsupported") && E("T().speechWebView").includes("Chrome");
+    return { ok, detail: `WebView→εφαρμογή: ${re.test(webview)} · Chrome→όχι: ${!re.test(chrome)}` };
   });
 
   // ---------- επαναφορά ----------

@@ -623,7 +623,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v18";
+const APP_VERSION = "v19";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -672,6 +672,7 @@ const UI = {
     speechFallback: (w, n) => `Δεν βρέθηκε ${w === "female" ? "γυναικεία" : "ανδρική"} φωνή στη συσκευή· χρησιμοποιείται: ${n}.`,
     speechNone: "Δεν βρέθηκε ελληνική φωνή αποθηκευμένη στη συσκευή. Προσθέστε μία από τις ρυθμίσεις «Μετατροπή κειμένου σε ομιλία» του κινητού.",
     speechUnsupported: "Αυτός ο browser δεν υποστηρίζει ανάγνωση.",
+    speechWebView: "Η σελίδα άνοιξε μέσα από εφαρμογή (π.χ. Viber, WhatsApp, Facebook), που δεν έχει ανάγνωση. Άνοιξέ την στο Chrome: μενού ⋮ → «Άνοιγμα σε Chrome» ή «Άνοιγμα σε browser».",
     speechSample: "Καλώς ήρθες στο Four Choices.", speakAgain: "🔊 Άκουσε ξανά", speakStop: "■ Σταμάτα",
     speakEnable: "🔈 Ανάγνωση", speechMissing: "Δεν βρέθηκε φωνή στη συσκευή (δες Ρυθμίσεις).",
     voiceListTitle: "Φωνές που βλέπει η συσκευή (για έλεγχο)", voiceLocal: "τοπική", voiceRemote: "διαδικτυακή — δεν χρησιμοποιείται",
@@ -782,6 +783,7 @@ const UI = {
     speechFallback: (w, n) => `No ${w} voice found on this device; using: ${n}.`,
     speechNone: "No English voice is stored on this device. Add one in your phone's text-to-speech settings.",
     speechUnsupported: "This browser cannot read text aloud.",
+    speechWebView: "The page opened inside an app (e.g. Viber, WhatsApp, Facebook) that cannot read aloud. Open it in Chrome: menu ⋮ → \"Open in Chrome\" or \"Open in browser\".",
     speechSample: "Welcome to Four Choices.", speakAgain: "🔊 Listen again", speakStop: "■ Stop",
     speakEnable: "🔈 Read aloud", speechMissing: "No voice found on this device (see Settings).",
     voiceListTitle: "Voices this device reports (for checking)", voiceLocal: "on device", voiceRemote: "online — not used",
@@ -970,8 +972,11 @@ function renderVoiceList() {
     return li;
   }));
 }
+// Ενσωματωμένος browser εφαρμογής (Android WebView: «; wv)» στο user agent, ή γνωστές εφαρμογές): δεν έχει Web Speech API.
+const IN_APP = /; wv\)|FBAN|FBAV|Instagram|Viber|WhatsApp|Line\//i.test(navigator.userAgent || "");
+const noSpeechText = () => IN_APP ? T().speechWebView : T().speechUnsupported;
 function voiceHint() {
-  if (!TTS) return T().speechUnsupported;
+  if (!TTS) return noSpeechText();
   if (state.voice === "off") return T().speechOff;
   const { voice, fallback } = pickVoice();
   return !voice ? T().speechNone : fallback ? T().speechFallback(state.voice, voice.name) : T().speechVoice(voice.name);
@@ -996,8 +1001,15 @@ function speakText(text) {
 // ανοιχτή → «Άκουσε ξανά»/«Σταμάτα», χωρίς φωνή στη συσκευή → μήνυμα.
 function renderSpeechRow() {
   const row = $("speechRow");
-  row.classList.toggle("hidden", !(TTS && run));
-  if (!TTS || !run) return;
+  row.classList.toggle("hidden", !run);
+  if (!run) return;
+  if (!TTS) {                     // χωρίς μηχανή ομιλίας: μόνο εξήγηση, χωρίς κουμπιά
+    ["speakEnable", "speakAgain", "speakStop"].forEach(id => $(id).classList.add("hidden"));
+    $("speechNote").textContent = state.voice !== "off" ? noSpeechText() : "";
+    $("speechNote").classList.toggle("hidden", state.voice === "off");
+    row.classList.toggle("hidden", state.voice === "off");
+    return;
+  }
   const on = state.voice !== "off", voice = on && pickVoice().voice;
   $("speakEnable").classList.toggle("hidden", on);
   $("speakAgain").classList.toggle("hidden", !voice);
