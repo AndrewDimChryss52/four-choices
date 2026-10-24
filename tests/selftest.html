@@ -530,11 +530,12 @@ async function run() {
   });
 
   check("Ανάγνωση σε browser εφαρμογής (Viber/WhatsApp/WebView): σωστή αναγνώριση και σαφές μήνυμα", () => {
-    const re = /; wv\)|FBAN|FBAV|Instagram|Viber|WhatsApp|Line\//i;
+    const re = /; wv\)|FBAN|FBAV|Instagram|Viber|WhatsApp|Line\/|MiuiBrowser|XiaoMi\//i;
     const webview = "Mozilla/5.0 (Linux; Android 14; SM-A546B Build/UP1A; wv) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36";
     const chrome = "Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36";
     const same = String(E("IN_APP")) === String(re.test(navigator.userAgent));
-    const ok = re.test(webview) && !re.test(chrome) && same && E("noSpeechText()") === E("T().speechUnsupported") && E("T().speechWebView").includes("Chrome");
+    const mi = "Mozilla/5.0 (Linux; U; Android 14; Redmi 13C) AppleWebKit/537.36 Chrome/116.0 Mobile Safari/537.36 XiaoMi/MiuiBrowser/18.4";
+    const ok = re.test(webview) && re.test(mi) && !re.test(chrome) && same && E("noSpeechText()") === E("T().speechUnsupported") && E("T().speechWebView").includes("Chrome");
     return { ok, detail: `WebView→εφαρμογή: ${re.test(webview)} · Chrome→όχι: ${!re.test(chrome)}` };
   });
 
