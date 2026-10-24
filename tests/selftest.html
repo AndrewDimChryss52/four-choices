@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -515,6 +515,18 @@ async function run() {
     E("state.sound = 'on'");
     const ok = circle && hubInside && level && picked && celebrate && cheer && list && longToList && achCount;
     return { ok, detail: `κύκλος: ${circle} · κλεψύδρα στο κέντρο: ${hubInside} · επίπεδο: ${level} · επιλεγμένο+σωστό: ${picked} · γιορτή: ${celebrate} · λίστα: ${list} · μεγάλη→λίστα: ${longToList} · επιτεύγματα 18: ${achCount}` };
+  });
+
+  check("Αντίστροφη μέτρηση για το νέο ημερήσιο: ζωντανή (ω:λλ:δδ) στο αποτέλεσμα και στην αρχική, με πρόταση για εξάσκηση", () => {
+    E("goHome()");
+    const fmt = /^\d{1,2}:\d{2}:\d{2}$/.test(E("untilMidnight()"));
+    E("lastResult = { mode: 'daily', key: todayKey() }"); E("updateCountdown()");
+    const meanwhile = !D("meanwhile").classList.contains("hidden") && D("nextIn").textContent === E("T().next(untilMidnight())");
+    E("lastResult = { mode: 'daily', key: '2000-01-01' }"); E("updateCountdown()");
+    const ready = D("nextIn").textContent === E("T().nextReady");
+    E("renderVoiceList()");
+    const voices = D("voiceList").children.length > 0;
+    return { ok: fmt && meanwhile && ready && voices, detail: `μορφή: ${fmt} · «ως τότε»: ${meanwhile} · «έτοιμο»: ${ready} · λίστα φωνών: ${voices}` };
   });
 
   // ---------- επαναφορά ----------

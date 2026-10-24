@@ -357,6 +357,10 @@
   /* Ανάγνωση: κουμπιά */
   .speechrow .chip.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   #speechNote { font-size: 13px; }
+  .voicelist { margin-top: 6px; } .voicelist summary { cursor: pointer; color: var(--muted); }
+  .voicelist ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+  #homeNext, #meanwhile { text-align: center; margin: 0; }
+  #nextIn { font-variant-numeric: tabular-nums; }
   /* Γιορτή: αστεράκια που «σκάνε», αναπήδηση μηνύματος */
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
@@ -439,6 +443,7 @@
     </div>
     <p id="dateLine" class="muted" style="margin:0"></p>
     <button id="startDaily" class="primary" type="button"></button>
+    <p id="homeNext" class="muted small hidden"></p>
     <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
     <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
     <p id="practiceInfo" class="muted small" style="margin:0"></p>
@@ -510,6 +515,7 @@
       <h2 data-t="speech"></h2>
       <div id="voices" class="seg wide" role="group"></div>
       <p class="muted small" id="voiceHint" style="margin-top:6px"></p>
+      <details class="voicelist"><summary class="small" data-t="voiceListTitle"></summary><ul id="voiceList" class="small"></ul></details>
     </div>
     <div>
       <h2 data-t="sound"></h2>
@@ -602,6 +608,7 @@
       <button id="again" class="secondary" type="button" data-t="practice"></button>
       <button id="home2" class="secondary" type="button" data-t="home"></button>
       <p id="nextIn" class="muted" style="text-align:center;margin:0"></p>
+      <p id="meanwhile" class="muted small hidden" data-t="meanwhile"></p>
     </div>
   </section>
 
@@ -616,7 +623,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v17";
+const APP_VERSION = "v18";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -667,6 +674,9 @@ const UI = {
     speechUnsupported: "Αυτός ο browser δεν υποστηρίζει ανάγνωση.",
     speechSample: "Καλώς ήρθες στο Four Choices.", speakAgain: "🔊 Άκουσε ξανά", speakStop: "■ Σταμάτα",
     speakEnable: "🔈 Ανάγνωση", speechMissing: "Δεν βρέθηκε φωνή στη συσκευή (δες Ρυθμίσεις).",
+    voiceListTitle: "Φωνές που βλέπει η συσκευή (για έλεγχο)", voiceLocal: "τοπική", voiceRemote: "διαδικτυακή — δεν χρησιμοποιείται",
+    voiceListEmpty: "Ο browser δεν αναφέρει καμία ελληνική ή αγγλική φωνή.",
+    nextReady: "Το νέο κουίζ είναι έτοιμο!", meanwhile: "Ως τότε: εξάσκηση, χαλαρή εξάσκηση ή πρόκληση φίλου, χωρίς όριο.",
     sound: "Ήχοι", sounds: { on: "Ναι", off: "Όχι" },
     soundHint: "Μικρή μελωδία στη σωστή απάντηση, ήπιος τόνος στη λάθος, γιορτή στα επιτεύγματα.",
     layout: "Διάταξη επιλογών", layouts: { circle: "Κύκλος", list: "Λίστα" },
@@ -774,6 +784,9 @@ const UI = {
     speechUnsupported: "This browser cannot read text aloud.",
     speechSample: "Welcome to Four Choices.", speakAgain: "🔊 Listen again", speakStop: "■ Stop",
     speakEnable: "🔈 Read aloud", speechMissing: "No voice found on this device (see Settings).",
+    voiceListTitle: "Voices this device reports (for checking)", voiceLocal: "on device", voiceRemote: "online — not used",
+    voiceListEmpty: "The browser reports no Greek or English voice.",
+    nextReady: "The new quiz is ready!", meanwhile: "Until then: practice, relaxed practice or a friend challenge, without limits.",
     sound: "Sounds", sounds: { on: "On", off: "Off" },
     soundHint: "A short melody for a correct answer, a soft tone for a wrong one, a celebration for achievements.",
     layout: "Answer layout", layouts: { circle: "Circle", list: "List" },
@@ -949,20 +962,34 @@ function pickVoice(lang = state.lang, want = state.voice) {
   const match = local.find(v => VOICE_NAMES[want].test(v.name) && !VOICE_NAMES[other].test(v.name));
   return { voice: match || local[0] || null, fallback: !match && local.length > 0 };
 }
+function renderVoiceList() {
+  const ul = $("voiceList"), vs = TTS ? speechSynthesis.getVoices().filter(v => /^(el|en)/i.test(v.lang || "")) : [];
+  ul.replaceChildren(...(vs.length ? vs.slice(0, 20) : [null]).map(v => {
+    const li = document.createElement("li");
+    li.textContent = v ? `${v.name} · ${v.lang} · ${v.localService ? T().voiceLocal : T().voiceRemote}` : T().voiceListEmpty;
+    return li;
+  }));
+}
 function voiceHint() {
   if (!TTS) return T().speechUnsupported;
   if (state.voice === "off") return T().speechOff;
   const { voice, fallback } = pickVoice();
   return !voice ? T().speechNone : fallback ? T().speechFallback(state.voice, voice.name) : T().speechVoice(voice.name);
 }
-function stopSpeech() { if (TTS) speechSynthesis.cancel(); }
+function stopSpeech() { clearTimeout(speechTimer); if (TTS) speechSynthesis.cancel(); }
+// Chrome (κυρίως Android): ομιλία που ζητείται αμέσως μετά από cancel() μπορεί να αγνοηθεί, και η μηχανή μπορεί να μείνει
+// «σε παύση». Γι' αυτό: resume() πριν από κάθε speak, και μικρή καθυστέρηση όταν κάτι μιλούσε ήδη.
+let speechTimer = null;
 function speakText(text) {
-  stopSpeech();
   const { voice } = pickVoice();
-  if (!voice || !text) return false;
+  if (!voice || !text) { stopSpeech(); return false; }
+  const busy = speechSynthesis.speaking || speechSynthesis.pending;
+  stopSpeech();
   const u = new SpeechSynthesisUtterance(text), style = VOICE_STYLE[state.voice];
   u.voice = voice; u.lang = voice.lang; u.rate = style.rate; u.pitch = style.pitch;
-  speechSynthesis.speak(u);
+  const go = () => { try { speechSynthesis.resume(); } catch { /* παλιοί browsers */ } speechSynthesis.speak(u); };
+  clearTimeout(speechTimer);
+  if (busy) speechTimer = setTimeout(go, 150); else go();
   return true;
 }
 // Η γραμμή ανάγνωσης φαίνεται πάντα στο παιχνίδι (όπου ο browser υποστηρίζει ομιλία): κλειστή → «Ανάγνωση»,
@@ -1169,6 +1196,7 @@ function applyLang() {
     if (v !== "off") speakText(T().speechSample);                     // δείγμα της φωνής που επιλέχτηκε
   });
   $("voiceHint").textContent = voiceHint();
+  renderVoiceList();
   buildSeg($("sounds"), Object.entries(T().sounds), state.sound, v => { state.sound = v; save(); applyLang(); if (v === "on") playSound("ok"); });
   buildSeg($("layouts"), Object.entries(T().layouts), state.layout, v => { state.layout = v; save(); applyLang(); });
   $("modeHint").textContent = T().modeHint[state.mode];
@@ -1204,7 +1232,7 @@ function show(id) {
 function goHome() {
   if (!P()) { openWelcome(); return; }
   if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; openChallenge(c); return; }
-  applyLang(); show("home");
+  applyLang(); show("home"); updateCountdown();
 }
 
 // ---------- παίκτες: δημιουργία, σύνδεση, μεταφορά ----------
@@ -1373,7 +1401,7 @@ const SOUNDS = {
   bad: [[246.9, .14], [196, .24]], timeout: [[196, .28]],
   ach: [[784, .1], [987.8, .1], [1318.5, .28]], fanfare: [[523.3, .11], [659.3, .11], [784, .11], [1046.5, .34]]
 };
-let audioCtx = null;
+let audioCtx = null, audioIdle = null;
 function playSound(name) {
   if (state.sound !== "on" || !SOUNDS[name]) return;
   try {
@@ -1393,6 +1421,8 @@ function playSound(name) {
       o.start(t); o.stop(t + d + 0.02);
       t += d * 0.85;
     }
+    clearTimeout(audioIdle);
+    audioIdle = setTimeout(() => { if (audioCtx && audioCtx.state === "running") audioCtx.suspend(); }, (t - audioCtx.currentTime) * 1000 + 300);
   } catch { /* ο ήχος είναι προαιρετικός */ }
 }
 // Αστεράκια που «σκάνε» από το σημείο της σωστής απάντησης· όχι στη «Μπαταρία» ή με «λιγότερες κινήσεις».
@@ -1998,12 +2028,21 @@ function renderHistory(p) {
 function openProfile() { if (!P()) return; renderProfile(); show("profile"); }
 let profileBack = "home";
 
-function updateCountdown() {
+// Αντίστροφη μέτρηση μέχρι τα μεσάνυχτα (νέο ημερήσιο), ζωντανή ανά δευτερόλεπτο, στο αποτέλεσμα και στην αρχική.
+function untilMidnight() {
   const now = new Date(), next = new Date(now); next.setHours(24, 0, 0, 0);
-  const ms = next - now, h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000);
-  $("nextIn").textContent = T().next(`${h}:${String(m).padStart(2, "0")}`);
+  const sec = Math.max(0, Math.floor((next - now) / 1000)), h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
-setInterval(() => { if (!$("result").classList.contains("hidden")) updateCountdown(); }, 60000);
+function updateCountdown() {
+  const r = lastResult, ready = r && r.mode === "daily" && r.key !== todayKey();
+  $("nextIn").textContent = ready ? T().nextReady : T().next(untilMidnight());
+  $("meanwhile").classList.toggle("hidden", !(r && r.mode === "daily") || ready);
+  const p = P(), played = p && p.days[`${level()}|${todayKey()}`];
+  $("homeNext").textContent = played ? T().next(untilMidnight()) : "";
+  $("homeNext").classList.toggle("hidden", !played);
+}
+setInterval(() => { if (!$("result").classList.contains("hidden") || !$("home").classList.contains("hidden")) updateCountdown(); }, 1000);
 
 async function share() {
   const r = lastResult, url = `${location.origin}${location.pathname}`;
