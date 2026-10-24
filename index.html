@@ -175,7 +175,6 @@
   .timer .track { stroke: var(--line); }
   .timer .ring { stroke: var(--timer); stroke-linecap: round; stroke-dasharray: 119.38; stroke-dashoffset: 0; transition: stroke .2s; }
   #timeLeft { position: relative; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); letter-spacing: -.02em; }
-  :root[data-mode="sun"] .timer { width: 70px; height: 70px; } :root[data-mode="sun"] #timeLeft { font-size: 25px; }
   .bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
   :root[data-mode="sun"] .bar { height: 14px; }
   .bar > div { height: 100%; background: var(--timer); width: 100%; transform-origin: left; border-radius: 999px; }
@@ -183,12 +182,10 @@
   #game.urgent #timerBar { background: var(--bad); animation: fc-pulse .8s ease-in-out infinite alternate; }
   #game.urgent #timeLeft { color: var(--bad); font-weight: 800; }
   #game.urgent .timer .ring { stroke: var(--bad); }
-  #game.urgent .timer { animation: fc-beat .8s ease-in-out infinite alternate; }
   @keyframes fc-pulse { from { opacity: 1; } to { opacity: .45; } }
   @keyframes fc-beat { from { transform: scale(1); } to { transform: scale(1.08); } }
   /* Χαλαρή εξάσκηση: χωρίς χρόνο */
   #game.relaxed .bar, #game.relaxed .timer svg { visibility: hidden; }
-  #game.relaxed .timer { width: auto; height: auto; }
   #game.relaxed #timeLeft { font-size: 13px; font-weight: 700; color: var(--muted); padding: 4px 10px; border-radius: 999px; background: var(--surface2); }
 
   /* ---------- Παιχνίδι: ερώτηση και επιλογές ---------- */
@@ -208,11 +205,8 @@
   .opt:active:not(:disabled) { transform: scale(.985); }
   .opt .key {
     flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
-    font-weight: 800; font-size: 17px; color: var(--badge-text); background: var(--c1);
+    font-weight: 800; font-size: 17px; color: var(--badge-text);
   }
-  .opt:nth-child(2) .key { background: var(--c2); }
-  .opt:nth-child(3) .key { background: var(--c3); color: var(--c3-text); }
-  .opt:nth-child(4) .key { background: var(--c4); }
   :root[data-mode="sun"] .opt .key { color: #fff !important; }
   .opt .mark { margin-left: auto; font-weight: 800; font-size: 20px; }
   .opt:disabled { cursor: default; }
@@ -302,6 +296,75 @@
   footer { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; padding: 4px 8px 8px; }
   #appVer { display: block; font-weight: 700; letter-spacing: .04em; margin-top: 2px; }
   :focus-visible { outline: 3px solid var(--c3); outline-offset: 2px; }
+
+  /* ---------- Κύκλος επιλογών (v17): τέσσερα τεταρτημόρια, κλεψύδρα στο κέντρο ---------- */
+  .opt:nth-child(1) { --q-c: var(--c1); } .opt:nth-child(2) { --q-c: var(--c2); }
+  .opt:nth-child(3) { --q-c: var(--c3); } .opt:nth-child(4) { --q-c: var(--c4); }
+  .opt .key { background: var(--q-c); }
+  .opt:nth-child(3) .key { color: var(--c3-text); }
+  .dial { position: relative; width: min(100%, 380px); margin: 4px auto 0; }
+  .dial:not(.list) .options { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; aspect-ratio: 1;
+    border-radius: 50%; overflow: hidden; background: var(--line); box-shadow: var(--shadow-lift); }
+  .dial:not(.list) .opt { border: 0; border-radius: 0; min-height: 0; height: 100%; box-shadow: none; position: relative;
+    flex-direction: column; justify-content: center; gap: 6px; text-align: center; font-weight: 650;
+    background: color-mix(in srgb, var(--q-c) 13%, var(--surface)); transition: background .18s, filter .18s; }
+  /* Το περιεχόμενο κάθε τεταρτημορίου κεντράρεται ~0,55 ακτίνας από το κέντρο (εκεί είναι ο μεγαλύτερος ελεύθερος χώρος,
+     μακριά από την καμπύλη και από την κλεψύδρα). Περιθώρια: έξω 28%, προς το κέντρο 18% της πλευράς του τεταρτημορίου. */
+  .dial:not(.list) .opt:nth-child(1) { padding: 27% 14% 16% 25%; }
+  .dial:not(.list) .opt:nth-child(2) { padding: 27% 25% 16% 14%; }
+  .dial:not(.list) .opt:nth-child(3) { padding: 16% 14% 27% 25%; }
+  .dial:not(.list) .opt:nth-child(4) { padding: 16% 25% 27% 14%; }
+  .dial:not(.list) .opt .key { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 999px; font-size: 15px; }
+  .dial:not(.list) .opt .txt { font-size: 16px; line-height: 1.2; overflow-wrap: break-word; max-width: 100%; }
+  .dial:not(.list) .opt .txt.len-m { font-size: 14.5px; } .dial:not(.list) .opt .txt.len-l { font-size: 13px; }
+  .dial:not(.list) .opt .txt.len-w { font-size: 12.5px; letter-spacing: -.01em; }
+  .dial:not(.list) .opt .mark { display: none; }
+  @media (hover: hover) { .dial:not(.list) .opt:hover:not(:disabled) { background: color-mix(in srgb, var(--q-c) 26%, var(--surface)); box-shadow: none; } }
+  .dial:not(.list) .opt:active:not(:disabled) { transform: none; filter: brightness(.96); }
+  .opt.picked:not(.correct):not(.wrong) { background: color-mix(in srgb, var(--q-c) 34%, var(--surface)); }
+  .dial:not(.list) .opt.correct { background: var(--ok); color: #fff; box-shadow: none; animation: fc-reveal .5s ease-out; }
+  .dial:not(.list) .opt.wrong { background: var(--bad); color: #fff; box-shadow: none; animation: fc-shake .38s ease-in-out; }
+  .dial:not(.list) .opt.correct .key { background: #fff !important; color: var(--ok) !important; font-size: 0; }
+  .dial:not(.list) .opt.wrong .key { background: #fff !important; color: var(--bad) !important; font-size: 0; }
+  .dial:not(.list) .opt.correct .key::after { content: "✓"; font-size: 19px; }
+  .dial:not(.list) .opt.wrong .key::after { content: "✗"; font-size: 19px; }
+  .dial:not(.list) .opt:disabled:not(.correct):not(.wrong) { opacity: .5; }
+  :root[data-mode="sun"] .dial:not(.list) .opt:disabled:not(.correct):not(.wrong) { opacity: 1; }
+  :root[data-mode="sun"] .dial:not(.list) .options { background: #000; }
+  @keyframes fc-reveal { 0% { filter: brightness(1.22) saturate(.8); } 55% { filter: brightness(1.08); } 100% { filter: none; } }
+  @keyframes fc-shake { 0%, 100% { translate: 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+  /* Κέντρο του κύκλου: η κλεψύδρα */
+  .hub.timer { position: absolute; left: 50%; top: 50%; width: 27%; height: auto; aspect-ratio: 1; translate: -50% -50%;
+    border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 6px var(--line), var(--shadow-lift); pointer-events: none; z-index: 2; }
+  .hub #timeLeft { font-size: clamp(22px, 7vw, 30px); }
+  :root[data-mode="sun"] .hub.timer { box-shadow: 0 0 0 6px #000; }
+  .dial.list { display: flex; flex-direction: column; }
+  .dial.list .hub.timer { order: -1; position: relative; left: auto; top: auto; translate: none; width: 72px; margin: 0 auto 12px; box-shadow: var(--shadow); }
+  #game.urgent .hub.timer { animation: fc-beat .8s ease-in-out infinite alternate; }
+  #game[data-level="3"].urgent .hub.timer { animation-duration: .5s; }
+  #game.relaxed .hub #timeLeft { font-size: 12px; line-height: 1.2; text-align: center; background: none; padding: 0 8px; }
+  /* Ατμόσφαιρα ανά δυσκολία (μόνο στο «Αυτόματο»): το Ανώτερο «ζεσταίνει», το Expert «βραδιάζει».
+     Η αντίθεση κειμένου μένει πάνω από WCAG AA (Expert: λευκό σε βαθύ μπλε ≈ 14:1). */
+  :root[data-mode="auto"] #game[data-level="2"] { background: color-mix(in srgb, var(--c3) 8%, var(--surface)); }
+  :root[data-mode="auto"] #game[data-level="3"] {
+    --surface: #13233d; --surface2: #1a2e4d; --text: #f1f4f8; --muted: #b3c0d2; --line: #2a4166;
+    --accent: #a8c9f5; --accent-text: #0a1424; --timer: #f0b84a; --instant: #f0b84a;
+    --ok: #2fae6e; --ok-bg: #133b2a; --bad: #e5574b; --bad-bg: #3d1f22; --badge-text: #ffffff; --c3-text: #1f1502;
+    background: radial-gradient(130% 80% at 50% 0%, #1d3557, #13233d 60%); color: var(--text); border-color: #2a4166; }
+  :root[data-mode="auto"] #game[data-level="3"] .dial:not(.list) .opt { background: color-mix(in srgb, var(--q-c) 10%, var(--surface)); color: var(--text); }
+  :root[data-mode="auto"] #game[data-level="3"] .dial:not(.list) .opt.correct,
+  :root[data-mode="auto"] #game[data-level="3"] .dial:not(.list) .opt.wrong { color: #fff; }
+  /* Ανάγνωση: κουμπιά */
+  .speechrow .chip.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  #speechNote { font-size: 13px; }
+  /* Γιορτή: αστεράκια που «σκάνε», αναπήδηση μηνύματος */
+  .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+  .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
+    text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
+  @keyframes fc-star { 0% { transform: translate(0, 0) scale(.2) rotate(0deg); opacity: 1; } 70% { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; } }
+  .feedback.pop { animation: fc-pop .42s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes fc-pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   @media (max-width: 400px) {
     header { gap: 6px; } .word { font-size: 19px; } .brand { gap: 8px; }
     .seg:not(.wide) button { padding: 6px 10px; }
@@ -449,6 +512,16 @@
       <p class="muted small" id="voiceHint" style="margin-top:6px"></p>
     </div>
     <div>
+      <h2 data-t="sound"></h2>
+      <div id="sounds" class="seg wide" role="group"></div>
+      <p class="muted small" data-t="soundHint" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <h2 data-t="layout"></h2>
+      <div id="layouts" class="seg wide" role="group"></div>
+      <p class="muted small" data-t="layoutHint" style="margin-top:6px"></p>
+    </div>
+    <div>
       <h2 data-t="scoringTitle"></h2>
       <p class="muted small" data-t="scoringText"></p>
     </div>
@@ -472,18 +545,22 @@
         <div class="meta"><span id="progress"></span><span id="category" class="cat"></span></div>
         <div id="dots" class="dots" aria-hidden="true"></div>
       </div>
-      <div class="timer" id="timerBox">
-        <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="19"/><circle id="timerRing" class="ring" cx="22" cy="22" r="19"/></svg>
-        <span id="timeLeft"></span>
-      </div>
     </div>
     <div class="bar" aria-hidden="true"><div id="timerBar"></div></div>
     <p id="question" class="question"></p>
     <div id="speechRow" class="speechrow hidden">
-      <button id="speakAgain" class="chip" type="button" data-t="speakAgain"></button>
+      <button id="speakEnable" class="chip" type="button" data-t="speakEnable"></button>
+      <button id="speakAgain" class="chip on" type="button" data-t="speakAgain"></button>
       <button id="speakStop" class="chip" type="button" data-t="speakStop"></button>
+      <span id="speechNote" class="muted hidden"></span>
     </div>
-    <div id="options" class="options"></div>
+    <div class="dial" id="dial">
+      <div id="options" class="options"></div>
+      <div class="timer hub" id="timerBox">
+        <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="19"/><circle id="timerRing" class="ring" cx="22" cy="22" r="19"/></svg>
+        <span id="timeLeft"></span>
+      </div>
+    </div>
     <div id="feedback" class="feedback"></div>
     <div id="explain" class="explain hidden">
       <p id="explainText"></p>
@@ -529,6 +606,7 @@
   </section>
 
   <footer><span data-t="footer"></span> <span id="appVer"></span></footer>
+  <div id="fx" class="fx" aria-hidden="true"></div>
 </main>
 
 <script src="questions.js"></script>
@@ -538,7 +616,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v16";
+const APP_VERSION = "v17";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -588,6 +666,14 @@ const UI = {
     speechNone: "Δεν βρέθηκε ελληνική φωνή αποθηκευμένη στη συσκευή. Προσθέστε μία από τις ρυθμίσεις «Μετατροπή κειμένου σε ομιλία» του κινητού.",
     speechUnsupported: "Αυτός ο browser δεν υποστηρίζει ανάγνωση.",
     speechSample: "Καλώς ήρθες στο Four Choices.", speakAgain: "🔊 Άκουσε ξανά", speakStop: "■ Σταμάτα",
+    speakEnable: "🔈 Ανάγνωση", speechMissing: "Δεν βρέθηκε φωνή στη συσκευή (δες Ρυθμίσεις).",
+    sound: "Ήχοι", sounds: { on: "Ναι", off: "Όχι" },
+    soundHint: "Μικρή μελωδία στη σωστή απάντηση, ήπιος τόνος στη λάθος, γιορτή στα επιτεύγματα.",
+    layout: "Διάταξη επιλογών", layouts: { circle: "Κύκλος", list: "Λίστα" },
+    layoutHint: "Στον κύκλο οι τέσσερις απαντήσεις είναι τεταρτημόρια με την κλεψύδρα στο κέντρο· πολύ μεγάλες απαντήσεις εμφανίζονται αυτόματα σε λίστα.",
+    cheers: ["Σωστά!", "Μπράβο!", "Εξαιρετικά!", "Πολύ καλά!", "Τέλεια!"],
+    misses: ["Δεν πειράζει — η επόμενη είναι δική σου!", "Κοντά ήσουν!", "Τώρα το ξέρεις για πάντα.", "Συνέχισε, πας καλά!"],
+    streakMsg: n => `${n} σωστές στη σειρά! 🔥`,
     modeHint: {
       auto: "Ακολουθεί το θέμα του κινητού και περνά σε εξοικονόμηση όταν η μπαταρία πέσει κάτω από 20%.",
       sun: "Μέγιστη αντίθεση και μεγαλύτερα γράμματα για ανάγνωση σε δυνατό φως.",
@@ -687,6 +773,14 @@ const UI = {
     speechNone: "No English voice is stored on this device. Add one in your phone's text-to-speech settings.",
     speechUnsupported: "This browser cannot read text aloud.",
     speechSample: "Welcome to Four Choices.", speakAgain: "🔊 Listen again", speakStop: "■ Stop",
+    speakEnable: "🔈 Read aloud", speechMissing: "No voice found on this device (see Settings).",
+    sound: "Sounds", sounds: { on: "On", off: "Off" },
+    soundHint: "A short melody for a correct answer, a soft tone for a wrong one, a celebration for achievements.",
+    layout: "Answer layout", layouts: { circle: "Circle", list: "List" },
+    layoutHint: "In the circle the four answers are quadrants around the timer; very long answers switch to a list automatically.",
+    cheers: ["Correct!", "Well done!", "Excellent!", "Great!", "Perfect!"],
+    misses: ["Never mind — the next one is yours!", "So close!", "Now you know it for good.", "Keep going, you are doing well!"],
+    streakMsg: n => `${n} correct in a row! 🔥`,
     modeHint: {
       auto: "Follows your phone's theme and switches to battery saving below 20% charge.",
       sun: "Maximum contrast and larger text for reading in bright light.",
@@ -775,7 +869,16 @@ const ACHIEVEMENTS = [
     p => dailyList(p).filter(([, d]) => !d.leaves).length >= 10],
   ["seen100", "📚", "Βιβλιοφάγος", "Bookworm", "Έχεις δει 100 ερωτήσεις.", "You have seen 100 questions.", p => (p.seen || []).length >= 100],
   ["polymath", "🧭", "Πολυμαθής", "Polymath", "10 σωστές σε κάθε κατηγορία.", "10 correct in every category.",
-    p => Object.keys(CATEGORIES).every(c => ((p.stats || {})[c] || {}).ok >= 10)]
+    p => Object.keys(CATEGORIES).every(c => ((p.stats || {})[c] || {}).ok >= 10)],
+  ["quicksilver", "☿", "Φτερωτός Ερμής", "Quicksilver", "5 × ⚡ στη σειρά σε ημερήσιο κουίζ.", "5 × ⚡ in a row in a daily quiz.",
+    p => dailyList(p).some(([, d]) => (d.grid || "").includes("⚡⚡⚡⚡⚡"))],
+  ["devoted", "🌱", "Αφοσίωση", "Devoted", "7 ημερήσια κουίζ, όποιο κι αν είναι το σκορ.", "7 daily quizzes, whatever the score.", p => dailyList(p).length >= 7],
+  ["explorer", "🗺", "Εξερευνητής", "Explorer", "Απάντησες σε όλες τις κατηγορίες.", "You answered in every category.",
+    p => Object.keys(CATEGORIES).every(c => ((p.stats || {})[c] || {}).n >= 1)],
+  ["scholar", "📜", "Λόγιος", "Scholar", "100 σωστές απαντήσεις συνολικά.", "100 correct answers in total.",
+    p => Object.values(p.stats || {}).reduce((a, c) => a + (c.ok || 0), 0) >= 100],
+  ["duelist", "⚔", "Μονομάχος", "Duelist", "Ολοκλήρωσες μια πρόκληση φίλου.", "You completed a friend challenge.",
+    p => Object.values(p.challenges || {}).some(c => c.done)]
 ];
 
 // ---------- αποθήκευση (προαιρετική: το παιχνίδι λειτουργεί και χωρίς αυτήν) ----------
@@ -808,6 +911,8 @@ const state = migrate();
 if (!UI[state.lang]) state.lang = (navigator.language || "el").toLowerCase().startsWith("el") ? "el" : "en";
 if (!["auto", "sun", "saver"].includes(state.mode)) state.mode = "auto";
 if (!["off", "female", "male"].includes(state.voice)) state.voice = "off";
+if (!["on", "off"].includes(state.sound)) state.sound = "on";
+if (!["circle", "list"].includes(state.layout)) state.layout = "circle";
 const P = () => state.profiles[state.current] || null;   // τρέχων παίκτης
 let SEEN = new Set();
 function loadPlayer() {
@@ -860,8 +965,18 @@ function speakText(text) {
   speechSynthesis.speak(u);
   return true;
 }
+// Η γραμμή ανάγνωσης φαίνεται πάντα στο παιχνίδι (όπου ο browser υποστηρίζει ομιλία): κλειστή → «Ανάγνωση»,
+// ανοιχτή → «Άκουσε ξανά»/«Σταμάτα», χωρίς φωνή στη συσκευή → μήνυμα.
 function renderSpeechRow() {
-  $("speechRow").classList.toggle("hidden", !(run && pickVoice().voice));
+  const row = $("speechRow");
+  row.classList.toggle("hidden", !(TTS && run));
+  if (!TTS || !run) return;
+  const on = state.voice !== "off", voice = on && pickVoice().voice;
+  $("speakEnable").classList.toggle("hidden", on);
+  $("speakAgain").classList.toggle("hidden", !voice);
+  $("speakStop").classList.toggle("hidden", !voice);
+  $("speechNote").textContent = on && !voice ? T().speechMissing : "";
+  $("speechNote").classList.toggle("hidden", !(on && !voice));
 }
 function speakQuestion() {
   renderSpeechRow();
@@ -1054,6 +1169,8 @@ function applyLang() {
     if (v !== "off") speakText(T().speechSample);                     // δείγμα της φωνής που επιλέχτηκε
   });
   $("voiceHint").textContent = voiceHint();
+  buildSeg($("sounds"), Object.entries(T().sounds), state.sound, v => { state.sound = v; save(); applyLang(); if (v === "on") playSound("ok"); });
+  buildSeg($("layouts"), Object.entries(T().layouts), state.layout, v => { state.layout = v; save(); applyLang(); });
   $("modeHint").textContent = T().modeHint[state.mode];
   $("appVer").textContent = `Four Choices ${APP_VERSION}`;
   $("bankInfo").textContent = T().bankInfo(QUESTIONS.length, BANK_VERSION,
@@ -1247,6 +1364,62 @@ function importCode(code) {
   if (Object.keys(live).length) state.profiles[id].live = live;
   save();
   return state.profiles[id].name;
+}
+
+// ---------- γιορτή και ενθάρρυνση (v17) ----------
+// Ήχοι: μικρές μελωδίες με Web Audio — χωρίς αρχεία, χωρίς εξωτερικές υπηρεσίες (Κ3). Ρύθμιση «Ήχοι».
+const SOUNDS = {
+  ok: [[880, .09], [1318.5, .16]], instant: [[1046.5, .06], [1318.5, .06], [1568, .06], [2093, .2]],
+  bad: [[246.9, .14], [196, .24]], timeout: [[196, .28]],
+  ach: [[784, .1], [987.8, .1], [1318.5, .28]], fanfare: [[523.3, .11], [659.3, .11], [784, .11], [1046.5, .34]]
+};
+let audioCtx = null;
+function playSound(name) {
+  if (state.sound !== "on" || !SOUNDS[name]) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audioCtx = audioCtx || new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const soft = name === "bad" || name === "timeout";
+    let t = audioCtx.currentTime + 0.01;
+    for (const [f, d] of SOUNDS[name]) {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = soft ? "sine" : "triangle"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(soft ? 0.05 : 0.09, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t); o.stop(t + d + 0.02);
+      t += d * 0.85;
+    }
+  } catch { /* ο ήχος είναι προαιρετικός */ }
+}
+// Αστεράκια που «σκάνε» από το σημείο της σωστής απάντησης· όχι στη «Μπαταρία» ή με «λιγότερες κινήσεις».
+const STAR_COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)"];
+let fxTimer = null;
+function burst(el, big) {
+  if (!el || effectiveMode() === "saver" || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+  const r = el.getBoundingClientRect(), fx = $("fx"), n = big ? 24 : 14;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement("i"), a = (i / n) * 2 * Math.PI + Math.random() * 0.4, dist = (big ? 95 : 62) + Math.random() * 55;
+    s.textContent = i % 3 ? "✦" : "★";
+    s.style.left = `${r.left + r.width / 2}px`; s.style.top = `${r.top + r.height / 2}px`;
+    s.style.setProperty("--dx", `${Math.cos(a) * dist}px`); s.style.setProperty("--dy", `${Math.sin(a) * dist}px`);
+    s.style.setProperty("--rot", `${Math.round((Math.random() * 2 - 1) * 220)}deg`);
+    s.style.setProperty("--s", `${(big ? 16 : 13) + Math.random() * 10}px`);
+    s.style.color = big && i % 2 ? "var(--timer)" : STAR_COLORS[i % 4];
+    fx.append(s);
+  }
+  clearTimeout(fxTimer);
+  fxTimer = setTimeout(() => fx.replaceChildren(), 1000);
+}
+const pickOne = list => list[Math.floor(Math.random() * list.length)];
+// Συνεχόμενες σωστές στον τρέχοντα γύρο (για το «3 σωστές στη σειρά!»).
+function trailingCorrect() {
+  let n = 0;
+  for (let i = run.grid.length - 1; i >= 0 && (run.grid[i] === "⚡" || run.grid[i] === "🟩"); i--) n++;
+  return n;
 }
 
 // ---------- ροή παιχνιδιού ----------
@@ -1492,6 +1665,10 @@ function nextQuestion() {
   speakQuestion();                      // ομιλία (D28): ο χρόνος έχει ήδη ξεκινήσει και τρέχει κανονικά
 }
 
+// Κύκλος μόνο όταν όλες οι απαντήσεις χωράνε καθαρά σε τεταρτημόριο: ≤ 22 χαρακτήρες και καμία λέξη > 12.
+// Αλλιώς λίστα (στην τράπεζα: κύκλος ~81% των ερωτήσεων στα ελληνικά, ~86% στα αγγλικά).
+const CIRCLE_MAX = { chars: 22, word: 12 };
+const fitsCircle = texts => texts.every(t => t.length <= CIRCLE_MAX.chars && t.split(/\s+/).every(w => w.length <= CIRCLE_MAX.word));
 // Κουκίδες προόδου: μία ανά ερώτηση, με το χρώμα του αποτελέσματος (⚡ ώχρα, σωστό πράσινο, λάθος κόκκινο).
 const DOT_CLASS = { "⚡": "inst", "🟩": "ok", "🟥": "bad", "⬜": "to", "⬛": "left" };
 function renderDots() {
@@ -1514,6 +1691,8 @@ function renderQuestion(keepState) {
   renderSpeechRow();
   if (run.mode === "relaxed") $("timeLeft").textContent = T().noTimer;
   $("question").textContent = data[0];
+  $("game").dataset.level = run.level;
+  $("dial").classList.toggle("list", state.layout === "list" || !fitsCircle(order.map(o => data[1 + o])));
   const box = $("options");
   const prev = keepState ? [...box.children].map(b => b.className) : null;
   box.replaceChildren();
@@ -1522,7 +1701,9 @@ function renderQuestion(keepState) {
     b.type = "button"; b.className = prev ? prev[pos] : "opt"; b.dataset.opt = optIdx;
     b.disabled = run.answered;
     const k = document.createElement("span"); k.className = "key"; k.textContent = T().keys[pos];
-    const txt = document.createElement("span"); txt.textContent = data[1 + optIdx];
+    const txt = document.createElement("span"), len = data[1 + optIdx].length;
+    const word = Math.max(...data[1 + optIdx].split(/\s+/).map(w => w.length));
+    txt.className = "txt" + (word > 9 ? " len-w" : len > 16 ? " len-l" : len > 11 ? " len-m" : ""); txt.textContent = data[1 + optIdx];
     const mark = document.createElement("span"); mark.className = "mark"; mark.setAttribute("aria-hidden", "true");
     b.append(k, txt, mark);
     b.addEventListener("click", () => answer(optIdx));
@@ -1592,14 +1773,21 @@ function answer(optIdx, reason) {
   [...$("options").children].forEach(b => {
     b.disabled = true;
     const v = Number(b.dataset.opt);
+    if (v === optIdx) b.classList.add("picked");
     if (v === 0) b.classList.add("correct");
     else if (v === optIdx) b.classList.add("wrong");
   });
   const fb = $("feedback");
   fb.replaceChildren();
   if (instant) { const s = document.createElement("span"); s.className = "instant"; s.textContent = T().instantHit; fb.append(s); }
-  else fb.textContent = reason === "left" ? T().left : ok ? T().correct : optIdx === null ? T().timeout : T().wrong;
-  fb.className = "feedback " + (ok ? "ok" : "bad");
+  else {
+    const streak = trailingCorrect();
+    fb.textContent = reason === "left" ? T().left : ok ? (streak >= 3 ? T().streakMsg(streak) : pickOne(T().cheers))
+      : optIdx === null ? T().timeout : pickOne(T().misses);
+  }
+  fb.className = "feedback pop " + (ok ? "ok" : "bad");
+  if (ok) { burst([...$("options").children].find(b => b.dataset.opt === "0"), instant); playSound(instant ? "instant" : "ok"); }
+  else if (reason !== "left") playSound(optIdx === null ? "timeout" : "bad");
   renderExplain();
   if (reason !== "left") $("nextBtn").focus({ preventScroll: true });
 }
@@ -1638,6 +1826,8 @@ function finish() {
   run = null;
   r.fresh = unlockAchievements(P()).map(a => a[0]);
   renderResult(r);
+  if (r.fresh.length) { playSound("ach"); burst($("newAch"), true); }
+  else if (r.correct >= 8) { playSound("fanfare"); burst($("resultScore"), true); }
 }
 
 function stats(lvl, p = P()) {
@@ -1924,6 +2114,7 @@ $("closeProfile").addEventListener("click", () => {
 $("openSettings").addEventListener("click", () => { $("refreshMsg").textContent = ""; applyLang(); show("settings"); });
 $("closeSettings").addEventListener("click", goHome);
 $("speakAgain").addEventListener("click", speakQuestion);
+$("speakEnable").addEventListener("click", () => { state.voice = "female"; save(); speakQuestion(); });
 $("speakStop").addEventListener("click", stopSpeech);
 if (TTS) speechSynthesis.onvoiceschanged = () => { if (!$("settings").classList.contains("hidden")) applyLang(); if (run) renderSpeechRow(); };
 $("refresh").addEventListener("click", refreshQuestions);
