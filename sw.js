@@ -1,6 +1,6 @@
 // Service worker: αποθηκεύει όλα τα αρχεία ώστε το παιχνίδι να παίζεται χωρίς σήμα (π.χ. στο μετρό).
 // Το VERSION το ενημερώνει αυτόματα το tools/build_schedule.py σε κάθε αλλαγή τράπεζας/προγράμματος.
-const VERSION = "fc-b9-20261024122645";
+const VERSION = "fc-b9-20261024213957";
 const FILES = ["./", "index.html", "questions.js", "schedule.js", "explanations.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", e => {
@@ -19,7 +19,9 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    // Πάντα έλεγχος με τον server (no-cache: 304 αν δεν άλλαξε), ώστε μια νέα έκδοση να φτάνει στο επόμενο άνοιγμα
+    // και όχι μετά τη λήξη της προσωρινής μνήμης HTTP (10′ στο GitHub Pages). Χωρίς σύνδεση → αποθηκευμένη έκδοση.
+    fetch(e.request.mode === "navigate" ? new Request(e.request.url) : e.request, { cache: "no-cache" })
       .then(res => {
         const copy = res.clone();
         caches.open(VERSION).then(c => c.put(e.request, copy));

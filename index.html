@@ -410,6 +410,8 @@
 <script>
 "use strict";
 
+// Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
+const APP_VERSION = "v15";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -468,7 +470,7 @@ const UI = {
     scoringText: `Σωστή απάντηση: ${SCORE.base} πόντοι + έως ${SCORE.speedMax} για ταχύτητα. ⚡ Άμεση γνώση (+${SCORE.instant}): όταν απαντάς σωστά μέσα στον χρόνο που χρειάζεται απλώς για να διαβάσεις ερώτηση και επιλογές (2 δευτ. + 30 χιλιοστά ανά χαρακτήρα). Η σωστή απάντηση μετά από σκέψη ή σύγκριση μετράει, αλλά λιγότερο. Η σωρευτική βαθμολογία αθροίζει τα ημερήσια κουίζ· η εξάσκηση δεν μετράει. Κανόνες βαθμολογίας: έκδοση ${RULES}· κάθε αποτέλεσμα κρατά την έκδοση με την οποία παίχτηκε.`,
     rulesOf: v => `Κανόνες βαθμολογίας: έκδοση ${v}`,
     questions: "Ερωτήσεις",
-    bankInfo: (n, v, ends) => `Τράπεζα έκδοση ${v}: ${n} ερωτήσεις. Πρόγραμμα έως: ${ends}.`,
+    bankInfo: (n, v, ends) => `Έκδοση εφαρμογής ${APP_VERSION}. Τράπεζα έκδοση ${v}: ${n} ερωτήσεις. Πρόγραμμα έως: ${ends}.`,
     refresh: "Έλεγχος για νέες ερωτήσεις",
     refreshing: "Λήψη της νέας έκδοσης…", refreshFail: "Δεν υπάρχει σύνδεση· δοκίμασε αργότερα.",
     fairTitle: "Δίκαιο παιχνίδι",
@@ -567,7 +569,7 @@ const UI = {
     scoringText: `Correct answer: ${SCORE.base} points + up to ${SCORE.speedMax} for speed. ⚡ Instant knowledge (+${SCORE.instant}): a correct answer within the time it takes just to read the question and options (2 s + 30 ms per character). A correct answer after thought or comparison counts, but less. The cumulative score adds up daily quizzes; practice does not count. Scoring rules: version ${RULES}; every result keeps the version it was played under.`,
     rulesOf: v => `Scoring rules: version ${v}`,
     questions: "Questions",
-    bankInfo: (n, v, ends) => `Question bank version ${v}: ${n} questions. Schedule until: ${ends}.`,
+    bankInfo: (n, v, ends) => `App version ${APP_VERSION}. Question bank version ${v}: ${n} questions. Schedule until: ${ends}.`,
     refresh: "Check for new questions",
     refreshing: "Fetching the new version…", refreshFail: "No connection; try again later.",
     fairTitle: "Fair play",
