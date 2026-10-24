@@ -331,7 +331,7 @@ async function run() {
     localStorage.setItem("fourchoices.v3", JSON.stringify(st["fourchoices.v3"]));
     await new Promise(res => { frame.onload = () => res(); frame.src = `../index.html?t=${Date.now()}#c=${chCode}`; });
     const intro = visible("challenge") && D("chFrom").textContent.length > 0 && D("chAccept").textContent === E("T().chAccept")
-      && D("openPlayers").textContent.includes("Φίλος")
+      && D("openPlayers").title === "Φίλος" && D("openPlayers").textContent === "Φ"
       && D("chGrid").textContent === E("parseChallenge(" + JSON.stringify(chCode) + ").from.grid");
     const hashGone = W().location.hash === "";
     D("chAccept").click(); await sleep(30);
@@ -476,7 +476,8 @@ async function run() {
   await checkAsync("Κλεψύδρα: τα τελευταία δευτερόλεπτα η μπάρα και ο αριθμός γίνονται κόκκινα· σβήνει με την απάντηση", async () => {
     const limits = E("urgentMs(20000)") === 5000 && E("urgentMs(15000)") === 5000 && E("urgentMs(12000)") === 4200;
     E("run.deadline = performance.now() + 10000"); E("tick()");
-    const calm = !D("game").classList.contains("urgent") && D("timeLeft").textContent.startsWith("⏳");
+    const calm = !D("game").classList.contains("urgent") && /^\d+$/.test(D("timeLeft").textContent)
+      && Math.abs(parseFloat(D("timerRing").style.strokeDashoffset) - E("RING") * (1 - 10000 / (E("seconds()") * 1000))) < 1;
     E("run.deadline = performance.now() + 3000"); E("tick()");
     const red = W().getComputedStyle(D("timerBar")).backgroundColor, timerColor = W().getComputedStyle(D("timeLeft")).color;
     const urgent = D("game").classList.contains("urgent") && red === timerColor && W().getComputedStyle(D("timerBar")).animationName === "fc-pulse";
