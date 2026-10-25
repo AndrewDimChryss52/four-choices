@@ -603,7 +603,7 @@ async function run() {
   });
 
   // ---------- 15. Στενή οθόνη κινητού (v23) ----------
-  await checkAsync("Κινητό 360×640: καμία οριζόντια κύλιση· επιλογές και «Επόμενη» σε μία οθόνη χωρίς κύλιση· η κουκουβάγια χωρά στη θέση της", async () => {
+  await checkAsync("Κινητό 360×640: καμία οριζόντια κύλιση· κανένα κομμένο γράμμα στον κύκλο· επιλογές και «Επόμενη» σε μία οθόνη χωρίς κύλιση· η κουκουβάγια χωρά στη θέση της", async () => {
     const oldW = frame.style.width, oldH = frame.style.height; frame.style.width = "360px"; frame.style.height = "640px"; await sleep(80);
     E("state.sound = 'off'"); E("goHome()"); await sleep(50);
     const doc = () => W().document.documentElement, fits = () => doc().scrollWidth <= doc().clientWidth;
@@ -614,11 +614,27 @@ async function run() {
     press(correctKey()); await sleep(60);
     const nb = D("nextBtn").getBoundingClientRect(), db = D("dial").getBoundingClientRect();
     const oneScreen = db.top >= 0 && nb.top >= db.bottom - 1 && nb.bottom <= W().innerHeight;
+    // v25: σε 200 ερωτήσεις της τράπεζας κανένα γράμμα έξω από το τεταρτημόριο ή την καμπύλη του κύκλου
+    let clipped = 0, circles = 0;
+    const all = E("[...BY_ID.values()]"); E("window.__keep = run.items[run.i]");
+    for (let i = 0; i < all.length; i += Math.ceil(all.length / 200)) {
+      E(`run.items[run.i] = { q: BY_ID.get(${all[i].id}), order: [0, 1, 2, 3] }; renderQuestion(true)`);
+      const dial = D("dial"); if (dial.classList.contains("list")) continue;
+      circles++;
+      const ring = dial.querySelector(".options").getBoundingClientRect(), cx = ring.left + ring.width / 2, cy = ring.top + ring.height / 2, R = ring.width / 2;
+      dial.querySelectorAll(".txt").forEach(t => {
+        const rg = W().document.createRange(); rg.selectNodeContents(t);
+        const ok = t.scrollWidth <= t.clientWidth + 1 && [...rg.getClientRects()].filter(r => r.width > 0)
+          .every(r => [[r.left, r.top], [r.right, r.top], [r.left, r.bottom], [r.right, r.bottom]].every(([x, y]) => Math.hypot(x - cx, y - cy) <= R));
+        if (!ok) clipped++;
+      });
+    }
+    E("run.items[run.i] = window.__keep; renderQuestion(true)");
     D("nextBtn").click(); await sleep(15);
     for (let i = 1; i < 10; i++) { press(i < 6 ? wrongKey() : correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
     const result = fits();
     E("goHome()"); E("state.sound = 'on'"); frame.style.width = oldW; frame.style.height = oldH;
-    return { ok: home && owl && game && oneScreen && result, detail: `αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
+    return { ok: home && owl && game && oneScreen && result && clipped === 0 && circles > 50, detail: `κομμένα γράμματα: ${clipped} σε ${circles} κύκλους · αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
   });
 
   // ---------- επαναφορά ----------

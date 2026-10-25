@@ -498,6 +498,10 @@
   body.playing #game .question { min-height: 0; }
   body.playing #game .dial { margin-top: auto; }          /* ο χώρος που περισσεύει μπαίνει πάνω από τις επιλογές: κοντά στον αντίχειρα */
   #game .dial.list .opt { min-height: var(--opt-h, 58px); }
+  /* Μικρός κύκλος (v25): μικρότερο γράμμα-κλειδί, λέξεις χωρίς σπάσιμο στη μέση· η γραμματοσειρά ρυθμίζεται από το fitDialText() */
+  .dial.compact:not(.list) .opt { gap: 3px; }
+  .dial.compact:not(.list) .opt .key { width: 27px; height: 27px; font-size: 13px; }
+  .dial:not(.list) .opt .txt { overflow-wrap: normal; word-break: keep-all; hyphens: manual; }
   /* Γραμμές σε μικρή οθόνη: σταδιακή σύμπτυξη (tight1 → tight3), ώστε όλες οι επιλογές να χωρούν μαζί με το «Επόμενη» */
   .dial.list.tight1 .opt { padding-block: 6px; gap: 10px; font-size: 15px; }
   .dial.list.tight1 .hub.timer { width: 56px; margin-bottom: 8px; }
@@ -781,7 +785,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v24";
+const APP_VERSION = "v25";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -2132,9 +2136,34 @@ function fitGame(align) {
     dial.classList.remove("tight1", "tight2", "tight3");
     const w = Math.min(game.clientWidth - padX, 460, Math.max(210, avail));   // κάτω από 210 px τα κείμενα δεν χωρούν
     dial.style.width = `${Math.floor(w)}px`;
+    dial.classList.toggle("compact", w < 300);
+    if (!fitDialText(dial)) {                                           // δεν χωρά ούτε με 11 px: γραμμές για αυτή την ερώτηση
+      dial.classList.add("list"); dial.classList.remove("compact"); dial.style.width = "";
+      return fitGame(align);
+    }
   }
   dial.style.marginTop = "";
   if (align) window.scrollTo({ top: game.getBoundingClientRect().top + scrollY - FIT_MARGIN, behavior: "auto" });
+}
+// Κάθε απάντηση πρέπει να φαίνεται ολόκληρη μέσα στο τεταρτημόριό της: καμία λέξη πιο φαρδιά από το κουτί,
+// κανένα γράμμα έξω από την καμπύλη του κύκλου. Μικραίνει τη γραμματοσειρά βήμα-βήμα (ως 11 px)· αλλιώς επιστρέφει false.
+function fitDialText(dial) {
+  const ring = dial.querySelector(".options").getBoundingClientRect();
+  const cx = ring.left + ring.width / 2, cy = ring.top + ring.height / 2, R = ring.width / 2 - 3;
+  const corners = r => [[r.left, r.top], [r.right, r.top], [r.left, r.bottom], [r.right, r.bottom]].every(([x, y]) => Math.hypot(x - cx, y - cy) <= R);
+  // Πραγματική έκταση των γραμμάτων (μία ορθογώνια περιοχή ανά γραμμή κειμένου), όχι όλο το κουτί.
+  const inside = el => { const rg = document.createRange(); rg.selectNodeContents(el);
+    const rs = [...rg.getClientRects()].filter(r => r.width > 0);
+    return (rs.length ? rs : [el.getBoundingClientRect()]).every(corners); };
+  return [...dial.querySelectorAll(".opt")].every(opt => {
+    const t = opt.querySelector(".txt"), k = opt.querySelector(".key"), box = opt.getBoundingClientRect();
+    t.style.fontSize = "";
+    let f = parseFloat(getComputedStyle(t).fontSize);
+    const ok = () => { const r = t.getBoundingClientRect();
+      return t.scrollWidth <= t.clientWidth + 1 && r.bottom <= box.bottom + 1 && r.top >= box.top - 1 && inside(t) && inside(k); };
+    while (!ok() && f > 11) { f -= .5; t.style.fontSize = `${f}px`; }
+    return ok();
+  });
 }
 let fitTimer = null;
 const refit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fitGame(false), 120); };
