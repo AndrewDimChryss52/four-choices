@@ -606,7 +606,7 @@ async function run() {
   });
 
   // ---------- 15. Στενή οθόνη κινητού (v23) ----------
-  await checkAsync("Κινητό 360×640: καμία οριζόντια κύλιση· κανένα κομμένο γράμμα στον κύκλο· επιλογές και «Επόμενη» σε μία οθόνη χωρίς κύλιση· η κουκουβάγια χωρά στη θέση της", async () => {
+  await checkAsync("Κινητό 360×640: καμία οριζόντια κύλιση· κανένα κομμένο γράμμα στον κύκλο· μπάρα αποτελέσματος με 10 κουτάκια· επιλογές και «Επόμενη» σε μία οθόνη χωρίς κύλιση· η κουκουβάγια χωρά στη θέση της", async () => {
     const oldW = frame.style.width, oldH = frame.style.height; frame.style.width = "360px"; frame.style.height = "640px"; await sleep(80);
     E("state.sound = 'off'"); E("goHome()"); await sleep(50);
     const doc = () => W().document.documentElement, fits = () => doc().scrollWidth <= doc().clientWidth;
@@ -636,8 +636,10 @@ async function run() {
     D("nextBtn").click(); await sleep(15);
     for (let i = 1; i < 10; i++) { press(i < 6 ? wrongKey() : correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
     const result = fits();
+    // v27: η μπάρα αποτελέσματος δείχνει και τα 10 κουτάκια ολόκληρα (πριν κοβόταν στα 8 στο κινητό)
+    const cells = [...D("resultGrid").children], bar = cells.length === 10 && cells.every(c => c.scrollWidth <= c.clientWidth);
     E("goHome()"); E("state.sound = 'on'"); frame.style.width = oldW; frame.style.height = oldH;
-    return { ok: home && owl && game && oneScreen && result && clipped === 0 && circles > 50, detail: `κομμένα γράμματα: ${clipped} σε ${circles} κύκλους · αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
+    return { ok: home && owl && game && oneScreen && result && bar && clipped === 0 && circles > 50, detail: `μπάρα 10/10 κουτάκια: ${bar} · κομμένα γράμματα: ${clipped} σε ${circles} κύκλους · αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
   });
 
   // ---------- 16. Πρόταση ανόδου επιπέδου (v26) ----------

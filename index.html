@@ -234,7 +234,14 @@
   #resultLabel { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
   .score { font-family: var(--serif); font-size: 72px; line-height: 1; font-weight: 700; letter-spacing: -.03em; margin: 10px 0 8px; color: var(--accent); font-variant-numeric: tabular-nums; }
   #resultCorrect { font-size: 18px; font-weight: 700; }
-  .grid { font-size: min(26px, 7.2vw); letter-spacing: 1px; white-space: nowrap; margin: 12px 0 6px; overflow: hidden; }
+  /* Μπάρα αποτελέσματος: 10 ίσα κελιά που χωρούν πάντα στο πλάτος (v27· πριν κοβόταν στα 8 σε κινητά με φαρδιά emoji) */
+  .grid { display: grid; grid-template-columns: repeat(var(--cells, 10), minmax(0, 1fr)); gap: 3px; margin: 12px 0 6px;
+    container-type: inline-size; }
+  .grid span { display: block; text-align: center; line-height: 1.15; font-size: min(26px, 5vw); overflow: hidden; }
+  @supports (font-size: 1cqi) { .grid span { font-size: min(26px, calc(100cqi / var(--cells, 10) * .6)); } }
+  /* Πολύ στενές οθόνες (v27): τα κουμπιά της κεφαλίδας κρατούν το μέγεθός τους, μικραίνει μόνο το λογότυπο */
+  header .icon-btn, header .avatar { flex: none; } header .brand { min-width: 0; }
+  @media (max-width: 340px) { header .word { font-size: 16px; } header { gap: 4px; } }
   .legend { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
   .badge { display: inline-block; border: var(--border) solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
   .badge.ok { border-color: var(--ok); color: var(--ok); background: var(--ok-bg); }
@@ -792,7 +799,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v26";
+const APP_VERSION = "v27";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -2367,7 +2374,11 @@ function renderResult(r) {
   $("resultInstant").textContent = relaxed ? "" : T().instantOf(r.instant || 0, r.correct);
   $("resultRules").textContent = r.rules ? T().rulesOf(r.rules) : "";   // αποτελέσματα πριν από τη v8: χωρίς ένδειξη
   $("resultRules").classList.toggle("hidden", !r.rules);
-  $("resultGrid").textContent = r.grid;
+  // Ένα κελί ανά ερώτηση (ολόκληρο emoji, ακόμη και με σύνθετους χαρακτήρες)
+  const cells = window.Intl && Intl.Segmenter ? [...new Intl.Segmenter("el", { granularity: "grapheme" }).segment(r.grid || "")].map(x => x.segment)
+    : Array.from(r.grid || "").filter(ch => ch !== "️");
+  $("resultGrid").replaceChildren(...cells.map(ch => { const c = document.createElement("span"); c.textContent = ch; return c; }));
+  $("resultGrid").style.setProperty("--cells", Math.max(cells.length, 1));
   sceneFor(r);
   $("resultTreasure").classList.toggle("hidden", !r.coins);
   if (r.coins) fillTreasure($("resultTreasure"), r.coins.total, r.coins.earned);
