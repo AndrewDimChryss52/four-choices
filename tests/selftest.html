@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13", 35: "T15", 36: "T01" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -511,10 +511,10 @@ async function run() {
     const list = D("dial").classList.contains("list");
     E("state.layout = 'circle'"); E("run.items[run.i].q = { ...run.items[run.i].q, el: [run.items[run.i].q.el[0], 'α'.repeat(45), 'β', 'γ', 'δ'] }"); E("renderQuestion(true)");
     const longToList = D("dial").classList.contains("list");
-    const achCount = E("ACHIEVEMENTS.length") === 18;
+    const achCount = E("ACHIEVEMENTS.length") === 19;
     E("state.sound = 'on'");
     const ok = circle && hubInside && level && picked && celebrate && cheer && list && longToList && achCount;
-    return { ok, detail: `κύκλος: ${circle} · κλεψύδρα στο κέντρο: ${hubInside} · επίπεδο: ${level} · επιλεγμένο+σωστό: ${picked} · γιορτή: ${celebrate} · λίστα: ${list} · μεγάλη→λίστα: ${longToList} · επιτεύγματα 18: ${achCount}` };
+    return { ok, detail: `κύκλος: ${circle} · κλεψύδρα στο κέντρο: ${hubInside} · επίπεδο: ${level} · επιλεγμένο+σωστό: ${picked} · γιορτή: ${celebrate} · λίστα: ${list} · μεγάλη→λίστα: ${longToList} · επιτεύγματα 19: ${achCount}` };
   });
 
   check("Αντίστροφη μέτρηση για το νέο ημερήσιο: ζωντανή (ω:λλ:δδ) στο αποτέλεσμα και στην αρχική, με πρόταση για εξάσκηση", () => {
@@ -537,6 +537,40 @@ async function run() {
     const mi = "Mozilla/5.0 (Linux; U; Android 14; Redmi 13C) AppleWebKit/537.36 Chrome/116.0 Mobile Safari/537.36 XiaoMi/MiuiBrowser/18.4";
     const ok = re.test(webview) && re.test(mi) && !re.test(chrome) && same && E("noSpeechText()") === E("T().speechUnsupported") && E("T().speechWebView").includes("Chrome");
     return { ok, detail: `WebView→εφαρμογή: ${re.test(webview)} · Chrome→όχι: ${!re.test(chrome)}` };
+  });
+
+  // ---------- 13. Συνεχές παιχνίδι (D30) ----------
+  await checkAsync("Συνεχές παιχνίδι: γύροι χωρίς αναμονή, πρώτα αθέατες, μετά επανάληψη (πρώτα λάθη), ποτέ ερώτηση σημερινού/μελλοντικού ημερήσιου", async () => {
+    E("state.sound = 'off'"); E("goHome()");
+    const future = new Set(E("Object.entries(SCHEDULE[level()]).filter(([d]) => d >= todayKey()).flatMap(([, v]) => v)"));
+    D("startEndless").click(); await sleep(30);
+    const firstUnseen = E("run.mode") === "endless" && E("run.items.every(it => !SEEN.has(it.q.id) || true)");
+    for (let i = 0; i < 10; i++) { press(i === 0 ? wrongKey() : correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
+    const r1 = E("lastResult");
+    const sessionOk = visible("result") && r1.mode === "endless" && r1.session.rounds === 1 && D("again").textContent === E("T().nextRound")
+      && !D("sessionLine").classList.contains("hidden") && D("share").classList.contains("hidden");
+    const wrongId = r1.ids[0], reviewMark = E(`P().review[${wrongId}]`) === 2;
+    D("again").click(); await sleep(30);                                        // 2ος γύρος, ίδια συνεδρία
+    const round2 = E("run.mode") === "endless" && E("endlessSession.rounds") === 1;
+    for (let i = 0; i < 10; i++) { press(correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
+    const total = E("lastResult.session.total") === r1.score + E("lastResult.score") && E("lastResult.session.rounds") === 2;
+    // Εξάντληση αθέατων: όλες οι επιτρεπτές «ειδωμένες» → επανάληψη, με το λάθος πρώτο
+    E("PRACTICE[level()].forEach(id => SEEN.add(id)); Object.entries(SCHEDULE[level()]).filter(([d]) => d < todayKey()).forEach(([, v]) => v.forEach(id => SEEN.add(id)))");
+    E("endlessSession.recent = []");
+    const set = E("endlessSet(level())");
+    const prio = set.questions.map(q => E(`P().review[${q.id}] || 0`));
+    const review = set.review && set.questions.length === 10 && prio[0] === 2 && prio.every((v, i) => i === 0 || v <= prio[i - 1]);
+    const noFuture = set.questions.every(q => !future.has(q.id)) && r1.ids.every(id => !future.has(id));
+    const best = E("P().endless.best") >= E("lastResult.session.total") && E("P().endless.bestRounds") === 2;
+    E("goHome()"); E("state.sound = 'on'");
+    const ok = sessionOk && reviewMark && round2 && total && review && noFuture && best && firstUnseen;
+    return { ok, detail: `συνεδρία: ${sessionOk} · σήμανση λάθους: ${reviewMark} · 2ος γύρος: ${round2} · σύνολο: ${total} · επανάληψη πρώτα τα λάθη (${prio.join('')}): ${review} · χωρίς μελλοντικά ημερήσια: ${noFuture} · ρεκόρ: ${best}` };
+  });
+  check("Πρόγραμμα: ορίζοντας ημερήσιου ≤ 61 ημέρες μπροστά (D30)· οι υπόλοιπες ερωτήσεις στο απόθεμα εξάσκησης/συνεχούς", () => {
+    const S = E("SCHEDULE"), t = E("todayKey()"), lim = new Date(); lim.setDate(lim.getDate() + 61);
+    const limKey = E(`todayKey(new Date(${lim.getTime()}))`);
+    const ok = ["1", "2", "3"].every(l => Object.keys(S[l]).filter(d => d > t).every(d => d <= limKey) && E(`PRACTICE[${l}].length`) > 300);
+    return { ok, detail: ["1", "2", "3"].map(l => `L${l}: έως ${Object.keys(S[l]).sort().pop()}, απόθεμα ${E(`PRACTICE[${l}].length`)}`).join(" · ") };
   });
 
   // ---------- επαναφορά ----------

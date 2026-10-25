@@ -360,6 +360,11 @@
   .voicelist { margin-top: 6px; } .voicelist summary { cursor: pointer; color: var(--muted); }
   .voicelist ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
   #homeNext, #meanwhile { text-align: center; margin: 0; }
+  .secondary.endless { border-color: var(--c2); color: var(--accent); font-weight: 700;
+    background: color-mix(in srgb, var(--c2) 9%, var(--surface)); }
+  .session { font-weight: 700; margin: 2px 0 6px; color: var(--accent); }
+  /* Συνεχές: «Επόμενος γύρος» πρώτο, χωρίς τα στατιστικά του ημερήσιου */
+  #result.endless .stats { display: none; } #result.endless #again { order: -1; }
   #nextIn { font-variant-numeric: tabular-nums; }
   /* Γιορτή: αστεράκια που «σκάνε», αναπήδηση μηνύματος */
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
@@ -444,6 +449,8 @@
     <p id="dateLine" class="muted" style="margin:0"></p>
     <button id="startDaily" class="primary" type="button"></button>
     <p id="homeNext" class="muted small hidden"></p>
+    <button id="startEndless" class="secondary endless" type="button" data-t="endless"></button>
+    <p id="endlessInfo" class="muted small" style="margin:0"></p>
     <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
     <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
     <p id="practiceInfo" class="muted small" style="margin:0"></p>
@@ -585,6 +592,7 @@
     <p id="resultCorrect" style="margin-bottom:4px"></p>
     <p id="resultInstant" class="small" style="margin-bottom:4px"></p>
     <p id="resultRules" class="muted small" style="margin-bottom:4px"></p>
+    <p id="sessionLine" class="session hidden"></p>
     <div class="grid" id="resultGrid" aria-hidden="true"></div>
     <div class="legend" data-t="legend"></div>
     <p class="muted small hidden" id="offSchedule" data-t="offSchedule"></p>
@@ -623,7 +631,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v20";
+const APP_VERSION = "v21";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -649,6 +657,11 @@ const UI = {
     play: "Παίξε το σημερινό", playedToday: "Δες το σημερινό αποτέλεσμα",
     resume: (i, n) => `Συνέχισε το σημερινό (ερώτηση ${i}/${n})`,
     practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
+    endless: "♾ Συνεχές παιχνίδι", endlessScore: "Συνεχές παιχνίδι", nextRound: "Επόμενος γύρος →",
+    endlessInfo: n => n >= 10 ? `Συνεχές: γύροι ο ένας μετά τον άλλον, χωρίς αναμονή· ${n} νέες ερωτήσεις σε αυτό το επίπεδο, μετά επανάληψη όσων δεν ήξερες.`
+      : "Συνεχές: έχεις δει σχεδόν όλες τις νέες ερωτήσεις· συνεχίζεις με επανάληψη — πρώτα όσες δεν ήξερες.",
+    roundOf: n => `Γύρος ${n}`, reviewTag: "με επανάληψη",
+    sessionLine: (r, t, b) => `Γύρος ${r} · σύνολο ${t.toLocaleString("el-GR")} πόντοι · ρεκόρ ${b.toLocaleString("el-GR")}`,
     relaxed: "Χαλαρή εξάσκηση (χωρίς χρόνο)", relaxedScore: "Χαλαρή εξάσκηση", noTimer: "χωρίς χρόνο",
     relaxedNote: (c, n) => `${c} σωστές από ${n} · χωρίς χρονόμετρο και χωρίς πόντους`, q: "Ερώτηση", s: "δ",
     practiceLeft: n => n ? `Εξάσκηση: ${n} ερωτήσεις που δεν έχεις δει ακόμη σε αυτό το επίπεδο.`
@@ -760,6 +773,11 @@ const UI = {
     play: "Play today's quiz", playedToday: "See today's result",
     resume: (i, n) => `Resume today's quiz (question ${i}/${n})`,
     practice: "Free practice", home: "Home",
+    endless: "♾ Endless play", endlessScore: "Endless play", nextRound: "Next round →",
+    endlessInfo: n => n >= 10 ? `Endless: rounds one after another, no waiting; ${n} new questions at this level, then review of what you missed.`
+      : "Endless: you have seen almost every new question; you continue with review — first the ones you missed.",
+    roundOf: n => `Round ${n}`, reviewTag: "with review",
+    sessionLine: (r, t, b) => `Round ${r} · total ${t.toLocaleString("en-GB")} points · best ${b.toLocaleString("en-GB")}`,
     relaxed: "Relaxed practice (no timer)", relaxedScore: "Relaxed practice", noTimer: "no timer",
     relaxedNote: (c, n) => `${c} of ${n} correct · no timer and no points`, q: "Question", s: "s",
     practiceLeft: n => n ? `Practice: ${n} questions you have not seen yet at this level.`
@@ -893,7 +911,9 @@ const ACHIEVEMENTS = [
   ["scholar", "📜", "Λόγιος", "Scholar", "100 σωστές απαντήσεις συνολικά.", "100 correct answers in total.",
     p => Object.values(p.stats || {}).reduce((a, c) => a + (c.ok || 0), 0) >= 100],
   ["duelist", "⚔", "Μονομάχος", "Duelist", "Ολοκλήρωσες μια πρόκληση φίλου.", "You completed a friend challenge.",
-    p => Object.values(p.challenges || {}).some(c => c.done)]
+    p => Object.values(p.challenges || {}).some(c => c.done)],
+  ["marathon", "🏃", "Μαραθωνοδρόμος", "Marathoner", "10 γύροι σε ένα συνεχές παιχνίδι.", "10 rounds in one endless session.",
+    p => ((p.endless || {}).bestRounds || 0) >= 10]
 ];
 
 // ---------- αποθήκευση (προαιρετική: το παιχνίδι λειτουργεί και χωρίς αυτήν) ----------
@@ -1123,6 +1143,9 @@ function recordAnswer(q, ok, instant, p = P()) {
   if (!p) return;
   const c = (p.stats[q.cat] = p.stats[q.cat] || { n: 0, ok: 0, fast: 0 });
   c.n++; if (ok) c.ok++; if (instant) c.fast++;
+  // Για την επανάληψη του συνεχούς (D30): 2 = λάθος/λήξη/έξοδος, 1 = σωστή μετά από σκέψη· με ⚡ βγαίνει από τη λίστα.
+  const rv = (p.review = p.review || {});
+  if (!ok) rv[q.id] = 2; else if (instant) delete rv[q.id]; else rv[q.id] = 1;
   save();
 }
 const achName = a => state.lang === "el" ? a[2] : a[3];
@@ -1217,7 +1240,9 @@ function applyLang() {
     Object.keys(LEVELS).map(l => `${LEVELS[l][state.lang]} ${scheduleEnd(l)}`).join(" · "));
   const fresh = p ? practicePool(level()).length : 0;
   $("practiceInfo").textContent = T().practiceLeft(fresh);
-  $("startPractice").disabled = $("startRelaxed").disabled = $("again").disabled = fresh === 0;
+  $("startPractice").disabled = $("startRelaxed").disabled = fresh === 0;
+  $("again").disabled = fresh === 0 && !(lastResult && lastResult.mode === "endless");
+  $("endlessInfo").textContent = p ? T().endlessInfo(fresh) : "";
   const chOk = p ? challengePool(level()).length >= ROUND : false;
   $("startChallenge").disabled = !chOk;
   $("challengeInfo").classList.toggle("hidden", chOk || !p);
@@ -1352,7 +1377,7 @@ function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64
 function exportCode(id = state.current) {
   const p = state.profiles[id];
   return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
-    stats: p.stats || {}, ach: p.ach || {}, live: p.live, created: p.created }));
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, created: p.created }));
 }
 // Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
 function cleanStats(s) {
@@ -1366,6 +1391,17 @@ function cleanAch(a) {
   const ids = new Set(ACHIEVEMENTS.map(x => x[0])), out = {};
   for (const [k, v] of Object.entries(a && typeof a === "object" ? a : {})) if (ids.has(k) && /^\d{4}-\d{2}-\d{2}$/.test(v)) out[k] = v;
   return out;
+}
+// Επανάληψη και ρεκόρ συνεχούς (από v21): μόνο ακέραια id με τιμή 1/2, και μη αρνητικοί ακέραιοι.
+function cleanReview(r) {
+  const out = {};
+  for (const [k, v] of Object.entries(r && typeof r === "object" ? r : {})) if (/^\d+$/.test(k) && (v === 1 || v === 2)) out[k] = v;
+  return out;
+}
+function cleanEndless(e) {
+  if (!e || typeof e !== "object") return null;
+  const keys = ["best", "bestRound", "bestRounds", "rounds"];
+  return keys.every(k => Number.isInteger(e[k]) && e[k] >= 0) ? Object.fromEntries(keys.map(k => [k, e[k]])) : null;
 }
 // Μισοτελειωμένο ημερήσιο (από v7): μεταφέρεται κι αυτό, ώστε ο κωδικός να μη δίνει δεύτερη ευκαιρία στις ίδιες ερωτήσεις.
 function cleanLive(l) {
@@ -1402,6 +1438,9 @@ function importCode(code) {
     stats: cleanStats(d.stats), ach: cleanAch(d.ach), created: d.created || new Date().toISOString() };
   const live = cleanLive(d.live);
   if (Object.keys(live).length) state.profiles[id].live = live;
+  const review = cleanReview(d.review), endless = cleanEndless(d.endless);
+  if (Object.keys(review).length) state.profiles[id].review = review;
+  if (endless) state.profiles[id].endless = endless;
   save();
   return state.profiles[id].name;
 }
@@ -1467,6 +1506,27 @@ function trailingCorrect() {
 // ---------- ροή παιχνιδιού ----------
 let run = null, lastResult = null, timerId = null;
 
+// ---------- συνεχές παιχνίδι (D30) ----------
+// Γύροι των 10 χωρίς αναμονή. Πρώτα αθέατες ερωτήσεις (όπως η εξάσκηση)· όταν τελειώσουν, επανάληψη: πρώτα λάθη (2),
+// μετά σωστές με σκέψη (1), μετά όλες — ποτέ σημερινού/μελλοντικού ημερήσιου και όχι από τους τελευταίους 40 του συνεδρίου.
+let endlessSession = null;
+function endlessSet(lvl) {
+  const seed = (Math.random() * 2 ** 31) | 0, rand = rng(seed);
+  let qs = shuffled(practicePool(lvl), rand).slice(0, ROUND), review = false;
+  if (qs.length < ROUND) {
+    const today = todayKey(), allowed = new Set(PRACTICE_IDS[lvl] || []);
+    for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => allowed.add(id));
+    const rv = (P() && P().review) || {}, have = new Set(qs.map(q => q.id));
+    const recent = new Set(endlessSession ? endlessSession.recent : []);
+    const cand = [...allowed].filter(id => BY_ID.has(id) && SEEN.has(id) && !have.has(id));
+    const fresh = cand.filter(id => !recent.has(id)), pool = fresh.length >= ROUND - qs.length ? fresh : cand;
+    const keyed = pool.map(id => [-(rv[id] || 0) - rand(), id]).sort((a, b) => a[0] - b[0]);
+    qs = qs.concat(keyed.slice(0, ROUND - qs.length).map(([, id]) => BY_ID.get(id)));
+    review = true;
+  }
+  return { questions: qs, seed, scheduled: true, review };
+}
+
 function start(mode) {
   const p = P();
   if (!p) { openWelcome(); return; }
@@ -1474,7 +1534,9 @@ function start(mode) {
   if (mode === "daily" && saved) { renderResult({ mode, key, level: lvl, ...saved }); return; }
   const live = mode === "daily" && p.live && p.live[`${lvl}|${key}`];
   if (live) { resumeDaily(key, lvl, live); return; }
-  const set = mode === "daily" ? dailySet(key, lvl) : practiceSet(lvl);
+  if (mode !== "endless") endlessSession = null;                     // νέο συνεχές ξεκινά από την αρχή
+  else if (!endlessSession) endlessSession = { rounds: 0, total: 0, recent: [] };
+  const set = mode === "daily" ? dailySet(key, lvl) : mode === "endless" ? endlessSet(lvl) : practiceSet(lvl);
   if (!set.questions.length) { goHome(); return; } // δεν υπάρχουν αθέατες ερωτήσεις εξάσκησης
   const rand = rng(set.seed * 7919);
   run = {
@@ -1858,6 +1920,15 @@ function finish() {
     dropLive(P(), `${lvl}|${key}`);
     save();
   }
+  if (run.mode === "endless" && P() && endlessSession) {
+    const es = endlessSession, p = P(), e = (p.endless = p.endless || { best: 0, bestRound: 0, bestRounds: 0, rounds: 0 });
+    es.rounds++; es.total += r.score;
+    es.recent = es.recent.concat(r.ids).slice(-40);
+    e.rounds++; e.best = Math.max(e.best, es.total); e.bestRound = Math.max(e.bestRound, r.score);
+    e.bestRounds = Math.max(e.bestRounds, es.rounds);
+    save();
+    r.session = { rounds: es.rounds, total: es.total, best: e.best };
+  }
   if (run.mode === "challenge" && P()) {
     syncChallenge(P());
     P().challenges[run.challenge.cid].done = true;
@@ -1889,7 +1960,9 @@ function renderResult(r) {
   const lvlName = LEVELS[r.level][state.lang];
   $("resultLabel").textContent = r.mode === "daily" ? `${T().daily} · ${lvlName} · ${r.key}`
     : r.mode === "challenge" ? `${T().challengeScore} · ${lvlName}`
-    : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}` : `${T().practiceScore} · ${lvlName}`;
+    : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}`
+    : r.mode === "endless" ? `${T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
+    : `${T().practiceScore} · ${lvlName}`;
   const relaxed = r.mode === "relaxed";
   const badge = $("fairBadge");
   badge.textContent = r.leaves ? T().unfair(r.leaves) : T().fair;
@@ -1906,8 +1979,13 @@ function renderResult(r) {
   $("statPlayed").textContent = s.played; $("statStreak").textContent = s.streak;
   const fmt = v => v.toLocaleString(state.lang === "el" ? "el-GR" : "en-GB");
   $("statBest").textContent = fmt(s.best); $("statTotal").textContent = fmt(s.total);
-  $("share").classList.toggle("hidden", r.mode === "practice" || relaxed);
-  $("again").textContent = relaxed ? T().relaxed : T().practice;
+  const endless = r.mode === "endless";
+  $("share").classList.toggle("hidden", r.mode === "practice" || relaxed || endless);
+  $("again").textContent = endless ? T().nextRound : relaxed ? T().relaxed : T().practice;
+  $("again").className = endless ? "primary" : "secondary";
+  $("result").classList.toggle("endless", endless);
+  $("sessionLine").classList.toggle("hidden", !(endless && r.session));
+  if (endless && r.session) $("sessionLine").textContent = T().sessionLine(r.session.rounds, r.session.total, r.session.best);
   $("share").textContent = r.mode !== "challenge" ? T().share : r.challenge.from ? T().sendReply : T().sendChallenge;
   $("shareCard").classList.toggle("hidden", r.mode !== "daily");
   renderVs(r);
@@ -2152,7 +2230,8 @@ $("chOpen").addEventListener("click", () => { const t = $("chIn").value; $("chIn
 $("chAccept").addEventListener("click", () => { const c = shownChallenge; shownChallenge = null; if (c) startChallenge(c); });
 $("chBack").addEventListener("click", () => { shownChallenge = null; goHome(); });
 $("startRelaxed").addEventListener("click", () => start("relaxed"));
-$("again").addEventListener("click", () => start(lastResult && lastResult.mode === "relaxed" ? "relaxed" : "practice"));
+$("startEndless").addEventListener("click", () => { endlessSession = null; start("endless"); });
+$("again").addEventListener("click", () => start(lastResult && ["relaxed", "endless"].includes(lastResult.mode) ? lastResult.mode : "practice"));
 $("home2").addEventListener("click", goHome);
 $("share").addEventListener("click", share);
 $("shareCard").addEventListener("click", shareCard);
