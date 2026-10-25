@@ -517,6 +517,9 @@
     body.playing #game .question { font-size: 19px; line-height: 1.25; }
     body.playing .speechrow .chip { height: 30px; font-size: 12.5px; }
     body.playing #game .bar { height: 7px; } }
+  .levelup b, .levelup small { display: block; } .levelup small { color: var(--muted); margin: 2px 0 8px; }
+  .levelup .row { display: flex; gap: 8px; } .levelup .row button { flex: 1; min-height: 46px; padding-inline: 10px; }
+  .levelup .row .primary { flex: 2; }
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
     text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
@@ -736,6 +739,10 @@
   <!-- Αποτέλεσμα -->
   <section id="result" class="card hidden">
     <div id="newAch" class="toast hidden" role="status"></div>
+    <div id="levelUp" class="toast levelup hidden" role="status">
+      <b id="levelUpText"></b><small id="levelUpWhy"></small>
+      <div class="row"><button id="levelUpGo" class="primary" type="button"></button><button id="levelUpLater" class="secondary" type="button"></button></div>
+    </div>
     <div id="vsBox" class="toast hidden" role="status"></div>
     <div id="scene" class="scene" aria-hidden="true"></div>
     <p id="sceneMsg" class="scene-msg"></p>
@@ -785,7 +792,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v25";
+const APP_VERSION = "v26";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -798,7 +805,11 @@ const INSTANT = { baseMs: 2000, perCharMs: 30, maxShare: 0.6 };
 // Έκδοση κανόνων βαθμολογίας (Β9): γράφεται σε κάθε αποτέλεσμα. Κάθε αλλαγή σε SCORE, INSTANT ή στον τρόπο
 // υπολογισμού (pointsFor, instantLimitMs) = νέα έκδοση + γραμμή στον πίνακα του HANDBOOK §5.3α + στον αυτοέλεγχο.
 // Τα παλιά αποτελέσματα κρατούν τον αριθμό τους και δεν ξαναϋπολογίζονται ποτέ. Χωρίς πεδίο = πριν από τη v8.
-const RULES = 1;
+const RULES = 2;
+// Από την έκδοση 2 (v26, απόφαση PO): οι πόντοι πολλαπλασιάζονται ανάλογα με τη δυσκολία του επιπέδου.
+const LEVEL_MULT = { 1: 1, 2: 1.5, 3: 2 };
+// Πρόταση ανόδου επιπέδου: τόσοι γύροι στη σειρά με τουλάχιστον τόσες σωστές και τόσες ⚡.
+const LEVEL_UP = { rounds: 3, correct: 8, instant: 5 };
 // Τίτλοι σωρευτικής βαθμολογίας (ελάχιστοι πόντοι)
 const RANKS = [[0, "Αρχάριος", "Beginner"], [5000, "Μαθητευόμενος", "Apprentice"], [20000, "Γνώστης", "Connoisseur"],
                [50000, "Σοφός", "Sage"], [100000, "Ολύμπιος", "Olympian"]];
@@ -864,8 +875,11 @@ const UI = {
       saver: "Μαύρο φόντο (σβηστά pixel σε οθόνες OLED), χωρίς κινήσεις, σπανιότερη ανανέωση χρονομέτρου."
     },
     scoringTitle: "Βαθμολογία",
-    scoringText: `Σωστή απάντηση: ${SCORE.base} πόντοι + έως ${SCORE.speedMax} για ταχύτητα. ⚡ Άμεση γνώση (+${SCORE.instant}): όταν απαντάς σωστά μέσα στον χρόνο που χρειάζεται απλώς για να διαβάσεις ερώτηση και επιλογές (2 δευτ. + 30 χιλιοστά ανά χαρακτήρα). Η σωστή απάντηση μετά από σκέψη ή σύγκριση μετράει, αλλά λιγότερο. Η σωρευτική βαθμολογία αθροίζει τα ημερήσια κουίζ· η εξάσκηση δεν μετράει. Κανόνες βαθμολογίας: έκδοση ${RULES}· κάθε αποτέλεσμα κρατά την έκδοση με την οποία παίχτηκε.`,
+    scoringText: `Σωστή απάντηση: ${SCORE.base} πόντοι + έως ${SCORE.speedMax} για ταχύτητα. ⚡ Άμεση γνώση (+${SCORE.instant}): όταν απαντάς σωστά μέσα στον χρόνο που χρειάζεται απλώς για να διαβάσεις ερώτηση και επιλογές (2 δευτ. + 30 χιλιοστά ανά χαρακτήρα). Η σωστή απάντηση μετά από σκέψη ή σύγκριση μετράει, αλλά λιγότερο. Η σωρευτική βαθμολογία αθροίζει τα ημερήσια κουίζ· η εξάσκηση δεν μετράει. Στα δυσκολότερα επίπεδα οι πόντοι πολλαπλασιάζονται: ${LEVELS[1].el} ×1, ${LEVELS[2].el} ×1,5, ${LEVELS[3].el} ×2. Κανόνες βαθμολογίας: έκδοση ${RULES}· κάθε αποτέλεσμα κρατά την έκδοση με την οποία παίχτηκε.`,
     rulesOf: v => `Κανόνες βαθμολογίας: έκδοση ${v}`,
+    levelUp: n => `🚀 Απαντάς εύκολα και γρήγορα! Είσαι έτοιμος για το ${n}.`,
+    levelUpWhy: m => `${LEVEL_UP.rounds} γύροι στη σειρά με ${LEVEL_UP.correct}+ σωστές και ${LEVEL_UP.instant}+ ⚡. Εκεί κάθε σωστή μετράει ×${String(m).replace(".", ",")}.`,
+    levelUpGo: n => `Ανέβα στο ${n}`, levelUpLater: "Όχι τώρα",
     questions: "Ερωτήσεις",
     bankInfo: (n, v, ends) => `Έκδοση εφαρμογής ${APP_VERSION}. Τράπεζα έκδοση ${v}: ${n} ερωτήσεις. Πρόγραμμα έως: ${ends}.`,
     refresh: "Έλεγχος για νέες ερωτήσεις",
@@ -986,8 +1000,11 @@ const UI = {
       saver: "Pure black background (pixels off on OLED screens), no animations, slower timer refresh."
     },
     scoringTitle: "Scoring",
-    scoringText: `Correct answer: ${SCORE.base} points + up to ${SCORE.speedMax} for speed. ⚡ Instant knowledge (+${SCORE.instant}): a correct answer within the time it takes just to read the question and options (2 s + 30 ms per character). A correct answer after thought or comparison counts, but less. The cumulative score adds up daily quizzes; practice does not count. Scoring rules: version ${RULES}; every result keeps the version it was played under.`,
+    scoringText: `Correct answer: ${SCORE.base} points + up to ${SCORE.speedMax} for speed. ⚡ Instant knowledge (+${SCORE.instant}): a correct answer within the time it takes just to read the question and options (2 s + 30 ms per character). A correct answer after thought or comparison counts, but less. The cumulative score adds up daily quizzes; practice does not count. Harder levels multiply the points: ${LEVELS[1].en} ×1, ${LEVELS[2].en} ×1.5, ${LEVELS[3].en} ×2. Scoring rules: version ${RULES}; every result keeps the version it was played under.`,
     rulesOf: v => `Scoring rules: version ${v}`,
+    levelUp: n => `🚀 You answer easily and fast! You are ready for ${n}.`,
+    levelUpWhy: m => `${LEVEL_UP.rounds} rounds in a row with ${LEVEL_UP.correct}+ correct and ${LEVEL_UP.instant}+ ⚡. There every correct answer counts ×${m}.`,
+    levelUpGo: n => `Move up to ${n}`, levelUpLater: "Not now",
     questions: "Questions",
     bankInfo: (n, v, ends) => `App version ${APP_VERSION}. Question bank version ${v}: ${n} questions. Schedule until: ${ends}.`,
     refresh: "Check for new questions",
@@ -1271,9 +1288,10 @@ function instantLimitMs(q, lang, totalMs) {
   return Math.min(INSTANT.baseMs + INSTANT.perCharMs * chars, INSTANT.maxShare * totalMs);
 }
 // Πόντοι μίας απάντησης: 0 αν λάθος· αλλιώς βάση + ταχύτητα + (άμεση γνώση ? μπόνους : 0).
-function pointsFor(correct, leftMs, totalMs, instant) {
+function pointsFor(correct, leftMs, totalMs, instant, lvl = 1) {
   if (!correct) return 0;
-  return SCORE.base + Math.round(SCORE.speedMax * Math.max(0, leftMs) / totalMs) + (instant ? SCORE.instant : 0);
+  const pts = SCORE.base + Math.round(SCORE.speedMax * Math.max(0, leftMs) / totalMs) + (instant ? SCORE.instant : 0);
+  return Math.round(pts * (LEVEL_MULT[lvl] || 1));
 }
 // Σωρευτικά στοιχεία παίκτη (μόνο ημερήσια κουίζ).
 function totals(p, lvl) {
@@ -1545,7 +1563,7 @@ function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64
 function exportCode(id = state.current) {
   const p = state.profiles[id];
   return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
-    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, created: p.created }));
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, form: p.form, created: p.created }));
 }
 // Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
 function cleanStats(s) {
@@ -1610,6 +1628,10 @@ function importCode(code) {
   if (Object.keys(review).length) state.profiles[id].review = review;
   if (endless) state.profiles[id].endless = endless;
   if (Number.isInteger(d.coins) && d.coins >= 0) state.profiles[id].coins = d.coins;
+  // «Φόρμα» για την πρόταση ανόδου (v26): επίπεδο → γύροι στη σειρά (μη αρνητικός ακέραιος).
+  const form = Object.fromEntries(Object.entries(d.form && typeof d.form === "object" ? d.form : {})
+    .filter(([k, v]) => LEVELS[k] && Number.isInteger(v) && v >= 0));
+  if (Object.keys(form).length) state.profiles[id].form = form;
   save();
   return state.profiles[id].name;
 }
@@ -2220,7 +2242,7 @@ function answer(optIdx, reason) {
   const ok = optIdx === 0 && reason !== "left"; // στην τράπεζα η σωστή είναι πάντα η πρώτη επιλογή
   const timed = run.mode !== "relaxed";       // χαλαρή εξάσκηση: χωρίς πόντους και χωρίς ⚡
   const instant = timed && ok && elapsed <= instantLimitMs(q, state.lang, total);
-  if (timed) run.score += pointsFor(ok, left, total, instant);
+  if (timed) run.score += pointsFor(ok, left, total, instant, run.level);
   if (ok) run.correct++;
   if (instant) run.instant++;
   if (optIdx !== null) run.times.push(Math.round(elapsed));
@@ -2301,6 +2323,13 @@ function finish() {
     save();
     r.coins = { earned, total: P().coins };
   }
+  // Πρόταση ανόδου (v26): γύροι στη σειρά με εύκολες και γρήγορες απαντήσεις στο επίπεδο του παίκτη· ένας πιο αδύναμος μηδενίζει.
+  if (P() && run.mode !== "relaxed" && r.level === level() && LEVELS[r.level + 1]) {
+    const f = (P().form = P().form || {}), strong = r.correct >= LEVEL_UP.correct && (r.instant || 0) >= LEVEL_UP.instant;
+    f[r.level] = strong ? (f[r.level] || 0) + 1 : 0;
+    save();
+    r.levelUp = f[r.level] >= LEVEL_UP.rounds;
+  }
   run = null;
   r.fresh = unlockAchievements(P()).map(a => a[0]);
   renderResult(r);
@@ -2369,6 +2398,13 @@ function renderResult(r) {
     box.append(line);
   });
   box.classList.toggle("hidden", !fresh.length);
+  const up = !!r.levelUp && r.level === level() && LEVELS[r.level + 1];
+  $("levelUp").classList.toggle("hidden", !up);
+  if (up) {
+    const next = LEVELS[r.level + 1][state.lang];
+    $("levelUpText").textContent = T().levelUp(next); $("levelUpWhy").textContent = T().levelUpWhy(LEVEL_MULT[r.level + 1]);
+    $("levelUpGo").textContent = T().levelUpGo(next); $("levelUpLater").textContent = T().levelUpLater;
+  }
   // Ανασκόπηση: ερώτηση, σωστή απάντηση, εξήγηση, πηγή
   const list = $("reviewList"), marks = Array.from(r.grid || ""), ids = Array.isArray(r.ids) ? r.ids : [];
   list.replaceChildren();
@@ -2599,6 +2635,18 @@ $("chOpen").addEventListener("click", () => { const t = $("chIn").value; $("chIn
 $("chAccept").addEventListener("click", () => { const c = shownChallenge; shownChallenge = null; if (c) startChallenge(c); });
 $("chBack").addEventListener("click", () => { shownChallenge = null; goHome(); });
 $("startRelaxed").addEventListener("click", () => start("relaxed"));
+// Άνοδος επιπέδου με ένα πάτημα (ή «Όχι τώρα»)· και στις δύο περιπτώσεις η μέτρηση ξεκινά από την αρχή.
+function closeLevelUp(go) {
+  const p = P(), lvl = lastResult && lastResult.level;
+  if (!p || !lvl) return;
+  (p.form = p.form || {})[lvl] = 0;
+  if (go && LEVELS[lvl + 1]) { p.level = lvl + 1; endlessSession = null; }
+  save(); lastResult.levelUp = false;
+  $("levelUp").classList.add("hidden");
+  if (go) { playSound("ach"); goHome(); }
+}
+$("levelUpGo").addEventListener("click", () => closeLevelUp(true));
+$("levelUpLater").addEventListener("click", () => closeLevelUp(false));
 $("startEndless").addEventListener("click", () => { endlessSession = null; start("endless"); });
 $("again").addEventListener("click", () => start(lastResult && ["relaxed", "endless"].includes(lastResult.mode) ? lastResult.mode : "practice"));
 $("home2").addEventListener("click", goHome);

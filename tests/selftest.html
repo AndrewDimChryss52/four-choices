@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13", 35: "T15", 36: "T01", 37: "T16", 38: "T16" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13", 35: "T15", 36: "T01", 37: "T16", 38: "T16", 39: "T17" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -135,11 +135,13 @@ async function run() {
   });
 
   // ---------- 3. Βαθμολογία ----------
-  check("Βαθμολογία: λάθος = 0, σωστό στο τέλος = 100, σωστό αμέσως = 200, + άμεση γνώση = 250", () => {
+  check("Βαθμολογία: λάθος = 0, σωστό στο τέλος = 100, σωστό αμέσως = 200, + άμεση γνώση = 250· Αργυρό ×1,5, Χρυσό ×2 (έκδοση 2)", () => {
     const f = (...a) => E(`pointsFor(${a.join(",")})`);
     const ok = f(false, 15000, 15000, true) === 0 && f(true, 0, 15000, false) === 100
-      && f(true, 15000, 15000, false) === 200 && f(true, 15000, 15000, true) === 250 && f(true, 7500, 15000, false) === 150;
-    return { ok, detail: `0/${f(true, 0, 15000, false)}/${f(true, 15000, 15000, false)}/${f(true, 15000, 15000, true)}` };
+      && f(true, 15000, 15000, false) === 200 && f(true, 15000, 15000, true) === 250 && f(true, 7500, 15000, false) === 150
+      && f(true, 15000, 15000, true, 1) === 250 && f(true, 15000, 15000, true, 2) === 375 && f(true, 15000, 15000, true, 3) === 500
+      && f(false, 15000, 15000, true, 3) === 0;
+    return { ok, detail: `0/${f(true, 0, 15000, false)}/${f(true, 15000, 15000, false)}/${f(true, 15000, 15000, true)} · ανά επίπεδο ${f(true, 15000, 15000, true, 1)}/${f(true, 15000, 15000, true, 2)}/${f(true, 15000, 15000, true, 3)}` };
   });
   check("Άμεση γνώση: όριο = 2 δευτ. + 30 χιλ./χαρακτήρα, με ανώτατο 60% του χρόνου", () => {
     const q = { el: ["α".repeat(50), "β", "γ", "δ", "ε"] };            // 54 χαρακτήρες
@@ -283,13 +285,14 @@ async function run() {
 
   // ---------- 6. Έκδοση κανόνων βαθμολογίας (Β9) ----------
   // Ιστορικό εκδόσεων: όποιος αλλάζει SCORE/INSTANT χωρίς νέα έκδοση RULES (και νέα γραμμή εδώ) αποτυγχάνει σε αυτόν τον έλεγχο.
-  const RULES_HISTORY = { 1: { base: 100, speedMax: 100, instant: 50, baseMs: 2000, perCharMs: 30, maxShare: 0.6 } };
+  const RULES_HISTORY = { 1: { base: 100, speedMax: 100, instant: 50, baseMs: 2000, perCharMs: 30, maxShare: 0.6, mult: '{"1":1,"2":1,"3":1}' },
+                          2: { base: 100, speedMax: 100, instant: 50, baseMs: 2000, perCharMs: 30, maxShare: 0.6, mult: '{"1":1,"2":1.5,"3":2}' } };
   check("Κανόνες βαθμολογίας: έκδοση σε κάθε αποτέλεσμα, σταθερές ίδιες με το ιστορικό εκδόσεων, παλιά αποτελέσματα ανέγγιχτα", () => {
-    const v = E("RULES"), cur = { ...E("SCORE"), ...E("INSTANT") }, hist = RULES_HISTORY[v];
+    const v = E("RULES"), cur = { ...E("SCORE"), ...E("INSTANT"), mult: JSON.stringify(E("LEVEL_MULT")) }, hist = RULES_HISTORY[v];
     const sameRules = !!hist && Object.keys(hist).length === Object.keys(cur).length && Object.keys(hist).every(k => hist[k] === cur[k]);
     const days = E("P().days"), k = E("`2|${todayKey()}`");
     const played = days[k] && days[k].rules === v;                                   // ημερήσιο του ελέγχου 19 (2 επίπεδο)
-    const closed = Object.entries(days).some(([d, x]) => d.startsWith("1|") && x.leaves === 1 && x.rules === 1);   // έλεγχος 20
+    const closed = Object.entries(days).some(([d, x]) => d.startsWith("1|") && x.leaves === 1 && x.rules === 1);   // έλεγχος 20 (δεδομένα δοκιμής με κανόνες 1)
     const legacy = days["2|2026-10-21"] && days["2|2026-10-21"].rules === undefined && days["2|2026-10-21"].score === 1500;
     E("P().level = 2"); E("goHome()"); D("startDaily").click();                     // σημερινό αποτέλεσμα του ελέγχου 19
     const shown = D("resultRules").textContent === E(`T().rulesOf(${v})`);
@@ -299,7 +302,7 @@ async function run() {
       W().importCode("FC1:" + E(`toB64(${JSON.stringify(JSON.stringify(j))})`));
     } catch { bad = true; }
     const ok = Number.isInteger(v) && sameRules && played && closed && legacy && shown && bad;
-    return { ok, detail: `έκδοση ${v} · σταθερές ${sameRules ? "ίδιες" : "ΔΙΑΦΟΡΕΤΙΚΕΣ"} · ένδειξη «${D("resultRules").textContent}» · παλιό αποτέλεσμα ανέγγιχτο: ${!!legacy} · άκυρη έκδοση απορρίφθηκε: ${bad}` };
+    return { ok, detail: `έκδοση ${v} · σταθερές ${sameRules ? "ίδιες" : "ΔΙΑΦΟΡΕΤΙΚΕΣ"} · ένδειξη «${D("resultRules").textContent}» · παλιό αποτέλεσμα ανέγγιχτο: ${!!legacy} · άκυρη έκδοση απορρίφθηκε: ${bad} · ημερήσιο: ${!!played} · κλειστό: ${closed} (${JSON.stringify(Object.entries(days).filter(([d]) => d.startsWith("1|")).map(([d, x]) => [d, x.leaves, x.rules]))})` };
   });
 
   // ---------- 7. Πρόκληση φίλου (Β1) ----------
@@ -635,6 +638,24 @@ async function run() {
     const result = fits();
     E("goHome()"); E("state.sound = 'on'"); frame.style.width = oldW; frame.style.height = oldH;
     return { ok: home && owl && game && oneScreen && result && clipped === 0 && circles > 50, detail: `κομμένα γράμματα: ${clipped} σε ${circles} κύκλους · αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
+  });
+
+  // ---------- 16. Πρόταση ανόδου επιπέδου (v26) ----------
+  await checkAsync("Άνοδος επιπέδου: μετά από 3 γύρους στη σειρά με 8+ σωστές και 5+ ⚡ εμφανίζεται πρόταση· «Ανέβα» αλλάζει επίπεδο, ένας αδύναμος γύρος μηδενίζει", async () => {
+    E("state.sound = 'off'"); E("P().level = 1; P().form = {}; save()"); E("goHome()");
+    const round = async good => { D("startEndless").click(); await sleep(30);
+      for (let i = 0; i < 10; i++) { press(good || i > 5 ? correctKey() : wrongKey()); await sleep(15); D("nextBtn").click(); await sleep(15); } };
+    await round(true); await round(true);
+    const notYet = D("levelUp").classList.contains("hidden") && E("P().form[1]") === 2;
+    await round(false);
+    const reset = E("P().form[1]") === 0 && D("levelUp").classList.contains("hidden");
+    await round(true); await round(true); await round(true);
+    const shown = !D("levelUp").classList.contains("hidden") && D("levelUpGo").textContent === E("T().levelUpGo(LEVELS[2][state.lang])");
+    D("levelUpGo").click(); await sleep(30);
+    const moved = E("P().level") === 2 && E("P().form[1]") === 0 && visible("home");
+    const names = E("LEVELS[1].el").includes("Χάλκινο") && E("LEVELS[3].en").includes("Gold");
+    E("P().level = 1; save()"); E("goHome()"); E("state.sound = 'on'");
+    return { ok: notYet && reset && shown && moved && names, detail: `όχι πριν από 3: ${notYet} · μηδενισμός: ${reset} · πρόταση: ${shown} · άνοδος στο Αργυρό: ${moved} · ονόματα: ${names}` };
   });
 
   // ---------- επαναφορά ----------
