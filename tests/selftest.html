@@ -571,11 +571,15 @@ async function run() {
     const ok = sessionOk && reviewMark && round2 && total && review && noFuture && best && firstUnseen;
     return { ok, detail: `συνεδρία: ${sessionOk} · σήμανση λάθους: ${reviewMark} · 2ος γύρος: ${round2} · σύνολο: ${total} · επανάληψη πρώτα τα λάθη (${prio.join('')}): ${review} · χωρίς μελλοντικά ημερήσια: ${noFuture} · ρεκόρ: ${best}` };
   });
-  check("Πρόγραμμα: ορίζοντας ημερήσιου ≤ 61 ημέρες μπροστά (D30)· οι υπόλοιπες ερωτήσεις στο απόθεμα εξάσκησης/συνεχούς", () => {
+  check("Πρόγραμμα: ορίζοντας ημερήσιου ≤ 61 ημέρες μπροστά (D30)· το πολύ 3 ερωτήσεις ίδιας κατηγορίας ανά ημερήσιο (FC-04)", () => {
     const S = E("SCHEDULE"), t = E("todayKey()"), lim = new Date(); lim.setDate(lim.getDate() + 61);
     const limKey = E(`todayKey(new Date(${lim.getTime()}))`);
-    const ok = ["1", "2", "3"].every(l => Object.keys(S[l]).filter(d => d > t).every(d => d <= limKey) && E(`PRACTICE[${l}].length`) > 300);
-    return { ok, detail: ["1", "2", "3"].map(l => `L${l}: έως ${Object.keys(S[l]).sort().pop()}, απόθεμα ${E(`PRACTICE[${l}].length`)}`).join(" · ") };
+    // v28 (FC-04): ποικιλία — ποτέ πάνω από 3 ερωτήσεις της ίδιας κατηγορίας σε μελλοντικό ημερήσιο
+    const catOf = id => E(`BY_ID.get(${id}).cat`), maxCat = l => Math.max(...Object.entries(S[l]).filter(([d]) => d > t)
+      .map(([, v]) => Math.max(...Object.values(v.reduce((m, id) => (m[catOf(id)] = (m[catOf(id)] || 0) + 1, m), {})))));
+    const varied = ["1", "2", "3"].every(l => maxCat(l) <= 3);
+    const ok = varied && ["1", "2", "3"].every(l => Object.keys(S[l]).filter(d => d > t).every(d => d <= limKey) && E(`PRACTICE[${l}].length`) > 300);
+    return { ok, detail: ["1", "2", "3"].map(l => `L${l}: έως ${Object.keys(S[l]).sort().pop()}, απόθεμα ${E(`PRACTICE[${l}].length`)}, μέγ. ${maxCat(l)}/κατηγορία`).join(" · ") };
   });
 
   // ---------- 14. Εικονογράφηση και θησαυρός (v22) ----------
