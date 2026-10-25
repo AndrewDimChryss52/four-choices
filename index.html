@@ -488,6 +488,31 @@
   .t-shine { fill: none; stroke: var(--gold-l); stroke-width: 2; stroke-linecap: round; transform-box: fill-box; transform-origin: center;
     animation: twinkle .7s ease-in-out var(--d, 0s) 6 alternate; }
   @keyframes coin { 0% { translate: 0 18px; opacity: 0; } 20% { opacity: 1; } 55% { translate: var(--x) -26px; } 100% { translate: calc(var(--x) * 1.6) 8px; opacity: 0; } }
+  /* ---------- Προσαρμογή στην οθόνη κατά το παιχνίδι (v24) ----------
+     Η κάρτα του παιχνιδιού γεμίζει την οθόνη (ό,τι κι αν είναι το κινητό), οι επιλογές παίρνουν όσο χώρο περισσεύει
+     και ακριβώς από κάτω υπάρχει θέση για το «Επόμενη» — χωρίς ανεβοκατέβασμα. Τα μεγέθη τα υπολογίζει το fitGame(). */
+  body.playing { padding-block: max(6px, env(safe-area-inset-top, 0px)) max(6px, env(safe-area-inset-bottom, 0px)); }
+  body.playing main { gap: 8px; }
+  body.playing footer { display: none; }
+  body.playing #game { padding-top: 14px; padding-bottom: 12px; gap: 10px; box-sizing: border-box; }
+  body.playing #game .question { min-height: 0; }
+  body.playing #game .dial { margin-top: auto; }          /* ο χώρος που περισσεύει μπαίνει πάνω από τις επιλογές: κοντά στον αντίχειρα */
+  #game .dial.list .opt { min-height: var(--opt-h, 58px); }
+  /* Γραμμές σε μικρή οθόνη: σταδιακή σύμπτυξη (tight1 → tight3), ώστε όλες οι επιλογές να χωρούν μαζί με το «Επόμενη» */
+  .dial.list.tight1 .opt { padding-block: 6px; gap: 10px; font-size: 15px; }
+  .dial.list.tight1 .hub.timer { width: 56px; margin-bottom: 8px; }
+  .dial.list.tight1 .hub #timeLeft { font-size: 20px; }
+  .dial.list.tight2 .options { gap: 6px; }
+  .dial.list.tight2 .opt { font-size: 14px; line-height: 1.22; border-radius: 14px; }
+  .dial.list.tight2 .opt .key { flex-basis: 32px; height: 32px; font-size: 15px; }
+  .dial.list.tight2 .hub.timer { width: 46px; margin-bottom: 6px; }
+  .dial.list.tight3 .opt { font-size: 13px; padding-block: 4px; }
+  .dial.list.tight3 .opt .key { flex-basis: 28px; height: 28px; font-size: 14px; }
+  @media (max-height: 640px) {                                            /* μικρές οθόνες: πιο λιτή κεφαλή, ώστε ο κύκλος να μένει μεγάλος */
+    body.playing #game { gap: 8px; padding-top: 10px; }
+    body.playing #game .question { font-size: 19px; line-height: 1.25; }
+    body.playing .speechrow .chip { height: 30px; font-size: 12.5px; }
+    body.playing #game .bar { height: 7px; } }
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
     text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
@@ -697,11 +722,11 @@
       </div>
     </div>
     <div id="feedback" class="feedback"></div>
+    <button id="nextBtn" class="primary hidden" type="button"></button>
     <div id="explain" class="explain hidden">
       <p id="explainText"></p>
       <a id="explainSrc" target="_blank" rel="noopener noreferrer"></a>
     </div>
-    <button id="nextBtn" class="primary hidden" type="button"></button>
   </section>
 
   <!-- Αποτέλεσμα -->
@@ -756,7 +781,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v23";
+const APP_VERSION = "v24";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -1401,6 +1426,7 @@ document.querySelectorAll("header .seg button").forEach(b => b.addEventListener(
 const SECTIONS = ["welcome", "players", "home", "settings", "profile", "challenge", "game", "result"];
 function show(id) {
   SECTIONS.forEach(s => $(s).classList.toggle("hidden", s !== id));
+  document.body.classList.toggle("playing", id === "game");
   $("openSettings").disabled = $("openPlayers").disabled = id === "game";
 }
 function goHome() {
@@ -2073,7 +2099,48 @@ function renderQuestion(keepState) {
   });
   if (!keepState) { $("feedback").textContent = ""; $("feedback").className = "feedback"; }
   renderExplain();
+  fitGame(!keepState);
 }
+
+// ---------- προσαρμογή στην οθόνη (v24) ----------
+// Όλο το παιχνίδι σε μία οθόνη σε κάθε κινητό: η κάρτα ευθυγραμμίζεται στην κορυφή της οθόνης, ο κύκλος (ή οι γραμμές)
+// μεγαλώνει όσο επιτρέπει το ύψος και το πλάτος, και κρατιέται θέση για μήνυμα + «Επόμενη» ακριβώς από κάτω.
+const FIT_MARGIN = 6;                                                 // κενό πάνω/κάτω από την κάρτα (px)
+function fitGame(align) {
+  const game = $("game"), dial = $("dial"), box = $("options");
+  if (game.classList.contains("hidden")) return;
+  const vh = Math.round(window.visualViewport ? visualViewport.height : innerHeight);
+  game.style.minHeight = `${vh - 2 * FIT_MARGIN}px`;
+  dial.style.marginTop = "0px";                                       // μέτρηση στη φυσική θέση (χωρίς το margin-top: auto)
+  const cs = getComputedStyle(game), gap = parseFloat(cs.rowGap) || 10;
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight), padB = parseFloat(cs.paddingBottom);
+  // Θέση για μήνυμα (≈ 1 γραμμή) και κουμπί «Επόμενη» κάτω από τις επιλογές, πριν και μετά την απάντηση (ίδιο μέγεθος πάντα).
+  const nextH = $("nextBtn").offsetHeight || 54, fbH = Math.max($("feedback").offsetHeight, 27);
+  const below = gap + fbH + gap + nextH + padB;
+  const dialTop = dial.getBoundingClientRect().top - game.getBoundingClientRect().top;   // ό,τι είναι πάνω από τις επιλογές
+  const avail = vh - 2 * FIT_MARGIN - dialTop - below;
+  if (dial.classList.contains("list")) {
+    dial.style.width = "";
+    const n = box.children.length || 4, hub = box.getBoundingClientRect().top - dial.getBoundingClientRect().top;
+    const per = (avail - hub - (n - 1) * 10) / n;                       // 10 = κενό ανάμεσα στις γραμμές
+    game.style.setProperty("--opt-h", `${Math.round(Math.min(78, Math.max(44, per)))}px`);
+    // Αν μεγάλες απαντήσεις σπάνε σε πολλές σειρές, σύμπτυξη βήμα-βήμα μέχρι να χωρέσουν.
+    dial.classList.remove("tight1", "tight2", "tight3");
+    for (let t = 1; t <= 3 && dial.getBoundingClientRect().height > avail; t++) dial.classList.add(`tight${t}`);
+  } else {
+    game.style.removeProperty("--opt-h");
+    dial.classList.remove("tight1", "tight2", "tight3");
+    const w = Math.min(game.clientWidth - padX, 460, Math.max(210, avail));   // κάτω από 210 px τα κείμενα δεν χωρούν
+    dial.style.width = `${Math.floor(w)}px`;
+  }
+  dial.style.marginTop = "";
+  if (align) window.scrollTo({ top: game.getBoundingClientRect().top + scrollY - FIT_MARGIN, behavior: "auto" });
+}
+let fitTimer = null;
+const refit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fitGame(false), 120); };
+window.addEventListener("resize", refit);
+window.addEventListener("orientationchange", refit);
+if (window.visualViewport) visualViewport.addEventListener("resize", refit);
 
 // Μετά την απάντηση: εξήγηση + πηγή + κουμπί «Επόμενη». Το επόμενο χρονόμετρο ξεκινά μόνο όταν το πατήσεις,
 // άρα το άνοιγμα της πηγής (που κρύβει την εφαρμογή) δεν ακυρώνει τίποτα.
@@ -2154,7 +2221,7 @@ function answer(optIdx, reason) {
   renderExplain();
   if (reason !== "left") {
     $("nextBtn").focus({ preventScroll: true });
-    // Στο κινητό το «Επόμενη» είναι συχνά κάτω από την οθόνη: κύλιση ώστε να φαίνεται (v23).
+    // Το «Επόμενη» έχει κρατημένη θέση κάτω από τις επιλογές (fitGame, v24)· κύλιση μόνο αν η οθόνη είναι πολύ μικρή.
     $("nextBtn").scrollIntoView({ block: "nearest", behavior: motionOff() ? "auto" : "smooth" });
   }
 }

@@ -603,17 +603,22 @@ async function run() {
   });
 
   // ---------- 15. Στενή οθόνη κινητού (v23) ----------
-  await checkAsync("Κινητό 360px: καμία οριζόντια κύλιση (αρχική, παιχνίδι, αποτέλεσμα)· η κουκουβάγια χωρά στη θέση της", async () => {
-    const oldW = frame.style.width; frame.style.width = "360px"; await sleep(80);
+  await checkAsync("Κινητό 360×640: καμία οριζόντια κύλιση· επιλογές και «Επόμενη» σε μία οθόνη χωρίς κύλιση· η κουκουβάγια χωρά στη θέση της", async () => {
+    const oldW = frame.style.width, oldH = frame.style.height; frame.style.width = "360px"; frame.style.height = "640px"; await sleep(80);
     E("state.sound = 'off'"); E("goHome()"); await sleep(50);
     const doc = () => W().document.documentElement, fits = () => doc().scrollWidth <= doc().clientWidth;
     const home = fits(), owl = D("homeOwl").querySelector("svg").getBoundingClientRect().width <= 64.5;
     D("startEndless").click(); await sleep(40);
     const game = fits();
-    for (let i = 0; i < 10; i++) { press(i < 6 ? wrongKey() : correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
+    // v24: όλα σε μία οθόνη — μετά την απάντηση το «Επόμενη» είναι κάτω από τις επιλογές και μέσα στην οθόνη (360×640)
+    press(correctKey()); await sleep(60);
+    const nb = D("nextBtn").getBoundingClientRect(), db = D("dial").getBoundingClientRect();
+    const oneScreen = db.top >= 0 && nb.top >= db.bottom - 1 && nb.bottom <= W().innerHeight;
+    D("nextBtn").click(); await sleep(15);
+    for (let i = 1; i < 10; i++) { press(i < 6 ? wrongKey() : correctKey()); await sleep(15); D("nextBtn").click(); await sleep(15); }
     const result = fits();
-    E("goHome()"); E("state.sound = 'on'"); frame.style.width = oldW;
-    return { ok: home && owl && game && result, detail: `αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · αποτέλεσμα: ${result}` };
+    E("goHome()"); E("state.sound = 'on'"); frame.style.width = oldW; frame.style.height = oldH;
+    return { ok: home && owl && game && oneScreen && result, detail: `αρχική: ${home} · κουκουβάγια ≤64px: ${owl} · παιχνίδι: ${game} · μία οθόνη (επιλογές ${Math.round(db.top)}–${Math.round(db.bottom)}, «Επόμενη» ως ${Math.round(nb.bottom)}/${W().innerHeight}): ${oneScreen} · αποτέλεσμα: ${result}` };
   });
 
   // ---------- επαναφορά ----------
