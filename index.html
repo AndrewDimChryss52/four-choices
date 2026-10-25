@@ -370,7 +370,7 @@
   #homeNext, #meanwhile { text-align: center; margin: 0; }
   .secondary.endless { border-color: var(--c2); color: var(--accent); font-weight: 700;
     background: color-mix(in srgb, var(--c2) 9%, var(--surface)); }
-  .session { font-weight: 700; margin: 2px 0 6px; color: var(--accent); }
+  .session { font-weight: 700; margin: 2px 0 6px; color: var(--accent); white-space: pre-line; }
   /* Συνεχές: «Επόμενος γύρος» πρώτο, χωρίς τα στατιστικά του ημερήσιου */
   #result.endless .stats { display: none; } #result.endless #again { order: -1; }
   #nextIn { font-variant-numeric: tabular-nums; }
@@ -616,6 +616,8 @@
     <p id="endlessInfo" class="muted small" style="margin:0"></p>
     <button id="startGreece" class="secondary endless" type="button" data-t="greece"></button>
     <p id="greeceInfo" class="muted small" style="margin:0"></p>
+    <button id="startMistakes" class="secondary endless" type="button" data-t="mistakes"></button>
+    <p id="mistakesInfo" class="muted small" style="margin:0"></p>
     <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
     <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
     <p id="practiceInfo" class="muted small" style="margin:0"></p>
@@ -654,6 +656,7 @@
         <div><b id="kpiSpeed"></b><small data-t="kpiSpeed"></small></div>
         <div><b id="kpiMean"></b><small data-t="kpiMean"></small></div>
         <div><b id="kpiInstant"></b><small data-t="kpiInstant"></small></div>
+        <div style="grid-column: 1 / -1"><b id="kpiMastery"></b><small data-t="kpiMastery"></small></div>
       </div>
       <h2 data-t="levelTitle"></h2>
       <table class="lvltable"><thead><tr id="lvlHead"></tr></thead><tbody id="lvlBody"></tbody></table>
@@ -804,7 +807,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v29";
+const APP_VERSION = "v30";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -836,6 +839,12 @@ const UI = {
     practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
     endless: "♾ Συνεχές παιχνίδι", endlessScore: "Συνεχές παιχνίδι", nextRound: "Επόμενος γύρος →",
     greece: "Ελλάδα", greeceScore: "Ελλάδα",
+    mistakes: "🎯 Μόνο τα λάθη μου", mistakesScore: "Τα λάθη μου",
+    mistakesInfo: (n, m) => (n ? `${n} ${n === 1 ? "ερώτηση που απάντησες λάθος περιμένει" : "ερωτήσεις που απάντησες λάθος περιμένουν"} σε αυτό το επίπεδο· με σωστή απάντηση φεύγουν από τη λίστα.`
+      : "Κανένα λάθος προς επανάληψη σε αυτό το επίπεδο — μπράβο!") + (m ? " " + m : ""),
+    masteryLine: (ok, n) => `Επιτυχία στα παλιά λάθη: ${ok} από ${n} (${Math.round(100 * ok / n)}%).`,
+    fixedLine: (ok, n) => `🎯 Διόρθωσες ${ok} από ${n} παλιά λάθη σε αυτόν τον γύρο.`,
+    kpiMastery: "🎯 Επιτυχία στα παλιά λάθη (όλοι οι γύροι)",
     greeceInfo: n => `Γύροι μόνο με ερωτήσεις για την Ελλάδα — ιστορία, τόποι, μυθολογία, πολιτισμός (${n} σε αυτό το επίπεδο).`,
     endlessInfo: n => n >= 10 ? `Συνεχές: γύροι ο ένας μετά τον άλλον, χωρίς αναμονή· ${n} νέες ερωτήσεις σε αυτό το επίπεδο, μετά επανάληψη όσων δεν ήξερες.`
       : "Συνεχές: έχεις δει σχεδόν όλες τις νέες ερωτήσεις· συνεχίζεις με επανάληψη — πρώτα όσες δεν ήξερες.",
@@ -963,6 +972,12 @@ const UI = {
     practice: "Free practice", home: "Home",
     endless: "♾ Endless play", endlessScore: "Endless play", nextRound: "Next round →",
     greece: "Greece", greeceScore: "Greece",
+    mistakes: "🎯 Only my mistakes", mistakesScore: "My mistakes",
+    mistakesInfo: (n, m) => (n ? `${n} ${n === 1 ? "question you got wrong is" : "questions you got wrong are"} waiting at this level; a correct answer removes it from the list.`
+      : "No mistakes to review at this level — well done!") + (m ? " " + m : ""),
+    masteryLine: (ok, n) => `Success on past mistakes: ${ok} of ${n} (${Math.round(100 * ok / n)}%).`,
+    fixedLine: (ok, n) => `🎯 You fixed ${ok} of ${n} past mistakes this round.`,
+    kpiMastery: "🎯 Success on past mistakes (all rounds)",
     greeceInfo: n => `Rounds only with questions about Greece — history, places, mythology, culture (${n} at this level).`,
     endlessInfo: n => n >= 10 ? `Endless: rounds one after another, no waiting; ${n} new questions at this level, then review of what you missed.`
       : "Endless: you have seen almost every new question; you continue with review — first the ones you missed.",
@@ -1347,6 +1362,12 @@ function recordAnswer(q, ok, instant, p = P()) {
   c.n++; if (ok) c.ok++; if (instant) c.fast++;
   // Για την επανάληψη του συνεχούς (D30): 2 = λάθος/λήξη/έξοδος, 1 = σωστή μετά από σκέψη· με ⚡ βγαίνει από τη λίστα.
   const rv = (p.review = p.review || {});
+  // «Επιτυχία στα παλιά λάθη» (v30): κάθε νέα απάντηση σε ερώτηση που είχε απαντηθεί λάθος (από τη v30 και μετά).
+  if (rv[q.id] === 2) {
+    const m = (p.mastery = p.mastery || { n: 0, ok: 0 });
+    m.n++; if (ok) m.ok++;
+    if (run) { run.fixTries = (run.fixTries || 0) + 1; if (ok) run.fixed = (run.fixed || 0) + 1; }
+  }
   if (!ok) rv[q.id] = 2; else if (instant) delete rv[q.id]; else rv[q.id] = 1;
   save();
 }
@@ -1445,6 +1466,9 @@ function applyLang() {
   $("startPractice").disabled = $("startRelaxed").disabled = fresh === 0;
   $("again").disabled = fresh === 0 && !(lastResult && lastResult.mode === "endless");
   $("endlessInfo").textContent = p ? T().endlessInfo(fresh) : "";
+  const nMist = p ? mistakeIds(level()).length : 0;
+  $("startMistakes").disabled = nMist === 0;
+  $("mistakesInfo").textContent = p ? T().mistakesInfo(nMist, masteryText(p)) : "";
   $("startGreece").classList.toggle("hidden", !GREEK_IDS.size); $("greeceInfo").classList.toggle("hidden", !GREEK_IDS.size || !p);
   if (p) $("greeceInfo").textContent = T().greeceInfo(practicePool(level()).filter(q => GREEK_IDS.has(q.id)).length);
   const chOk = p ? challengePool(level()).length >= ROUND : false;
@@ -1583,7 +1607,7 @@ function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64
 function exportCode(id = state.current) {
   const p = state.profiles[id];
   return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
-    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, form: p.form, created: p.created }));
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, form: p.form, mastery: p.mastery, created: p.created }));
 }
 // Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
 function cleanStats(s) {
@@ -1652,6 +1676,8 @@ function importCode(code) {
   const form = Object.fromEntries(Object.entries(d.form && typeof d.form === "object" ? d.form : {})
     .filter(([k, v]) => LEVELS[k] && Number.isInteger(v) && v >= 0));
   if (Object.keys(form).length) state.profiles[id].form = form;
+  const ms = d.mastery;                                              // επιτυχία στα παλιά λάθη (v30)
+  if (ms && Number.isInteger(ms.n) && Number.isInteger(ms.ok) && ms.ok >= 0 && ms.n >= ms.ok) state.profiles[id].mastery = { n: ms.n, ok: ms.ok };
   save();
   return state.profiles[id].name;
 }
@@ -1843,7 +1869,15 @@ let run = null, lastResult = null, timerId = null;
 let endlessSession = null;
 // Θέμα του συνεχούς (v28): null = όλες οι ερωτήσεις, "gr" = μόνο σχετικές με την Ελλάδα (κουμπί «🇬🇷 Ελλάδα»).
 let endlessTheme = null;
-const themeOk = id => endlessTheme !== "gr" || GREEK_IDS.has(id);
+const themeOk = id => endlessTheme === "gr" ? GREEK_IDS.has(id)
+  : endlessTheme === "mistakes" ? ((P() && P().review) || {})[id] === 2 : true;
+// Λάθη που περιμένουν επανάληψη σε ένα επίπεδο (μόνο από επιτρεπτές ερωτήσεις: απόθεμα και περασμένα ημερήσια).
+function mistakeIds(lvl) {
+  const rv = (P() && P().review) || {}, today = todayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
+  for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => ids.add(id));
+  return [...ids].filter(id => rv[id] === 2 && BY_ID.has(id));
+}
+const masteryText = p => p && p.mastery && p.mastery.n ? T().masteryLine(p.mastery.ok, p.mastery.n) : "";
 function endlessSet(lvl) {
   const seed = (Math.random() * 2 ** 31) | 0, rand = rng(seed);
   let qs = shuffled(practicePool(lvl).filter(q => themeOk(q.id)), rand).slice(0, ROUND), review = false;
@@ -2340,6 +2374,7 @@ function finish() {
     save();
     r.session = { rounds: es.rounds, total: es.total, best: e.best };
     r.theme = endlessTheme;
+    if (run.fixTries) r.fix = { ok: run.fixed || 0, n: run.fixTries };
   }
   if (run.mode === "challenge" && P()) {
     syncChallenge(P());
@@ -2386,7 +2421,7 @@ function renderResult(r) {
   $("resultLabel").textContent = r.mode === "daily" ? `${T().daily} · ${lvlName} · ${r.key}`
     : r.mode === "challenge" ? `${T().challengeScore} · ${lvlName}`
     : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}`
-    : r.mode === "endless" ? `${r.theme === "gr" ? T().greeceScore : T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
+    : r.mode === "endless" ? `${r.theme === "gr" ? T().greeceScore : r.theme === "mistakes" ? T().mistakesScore : T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
     : `${T().practiceScore} · ${lvlName}`;
   const relaxed = r.mode === "relaxed";
   const badge = $("fairBadge");
@@ -2417,7 +2452,9 @@ function renderResult(r) {
   $("again").className = endless ? "primary" : "secondary";
   $("result").classList.toggle("endless", endless);
   $("sessionLine").classList.toggle("hidden", !(endless && r.session));
-  if (endless && r.session) $("sessionLine").textContent = T().sessionLine(r.session.rounds, r.session.total, r.session.best);
+  if (endless && r.session) $("sessionLine").textContent = T().sessionLine(r.session.rounds, r.session.total, r.session.best)
+    + (r.fix ? `
+${T().fixedLine(r.fix.ok, r.fix.n)}` : "");
   $("share").textContent = r.mode !== "challenge" ? T().share : r.challenge.from ? T().sendReply : T().sendChallenge;
   $("shareCard").classList.toggle("hidden", r.mode !== "daily");
   renderVs(r);
@@ -2514,6 +2551,7 @@ function renderIndicators(p) {
   const all = indicators(p);
   $("kpiKnow").textContent = fmtPct(all.knowledge); $("kpiSpeed").textContent = fmtSec(all.medianMs);
   $("kpiMean").textContent = fmtSec(all.meanMs); $("kpiInstant").textContent = fmtPct(all.instantShare);
+  $("kpiMastery").textContent = p.mastery && p.mastery.n ? `${Math.round(100 * p.mastery.ok / p.mastery.n)}% · ${p.mastery.ok}/${p.mastery.n}` : "—";
   const head = $("lvlHead"), body = $("lvlBody");
   head.replaceChildren(...T().lvlCols.map(c => { const th = document.createElement("th"); th.textContent = c; return th; }));
   body.replaceChildren();
@@ -2684,6 +2722,7 @@ $("levelUpGo").addEventListener("click", () => closeLevelUp(true));
 $("levelUpLater").addEventListener("click", () => closeLevelUp(false));
 $("startEndless").addEventListener("click", () => { endlessSession = null; endlessTheme = null; start("endless"); });
 $("startGreece").addEventListener("click", () => { endlessSession = null; endlessTheme = "gr"; start("endless"); });
+$("startMistakes").addEventListener("click", () => { endlessSession = null; endlessTheme = "mistakes"; start("endless"); });
 $("again").addEventListener("click", () => start(lastResult && ["relaxed", "endless"].includes(lastResult.mode) ? lastResult.mode : "practice"));
 $("home2").addEventListener("click", goHome);
 $("share").addEventListener("click", share);
