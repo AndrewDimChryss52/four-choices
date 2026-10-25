@@ -40,7 +40,7 @@ let n = 0, failed = 0;
 // Αντιστοίχιση ελέγχων στο σχέδιο δοκιμών docs/TEST_PLAN_EL.md (T01–T12)
 const TMAP = { 1: "T01", 2: "T01", 3: "T01", 4: "T01", 5: "T01", 6: "T01", 7: "T02", 8: "T02", 9: "T02", 10: "T02",
   11: "T10", 12: "T10", 13: "T02", 14: "T06", 15: "T08", 16: "T09", 17: "T09", 18: "T09", 19: "T05", 20: "T05",
-  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13", 35: "T15", 36: "T01", 37: "T16", 38: "T16", 39: "T17", 40: "T18", 41: "T19", 42: "T20", 43: "T21" };
+  21: "T12", 22: "T11", 23: "T11", 24: "T08", 25: "T12", 26: "T03", 27: "T04", 28: "T07", 29: "T13", 30: "T03", 31: "T01", 32: "T14", 33: "T02", 34: "T13", 35: "T15", 36: "T01", 37: "T16", 38: "T16", 39: "T17", 40: "T18", 41: "T19", 42: "T20", 43: "T21", 44: "T22", 45: "T22", 46: "T22", 47: "T22" };
 
 function report(name, ok, detail = "") {
   n++; if (!ok) failed++;
@@ -231,7 +231,8 @@ async function run() {
     const name = W().importCode(code);
     const after = E(`JSON.stringify(state.profiles['${id}'])`);
     let bad = false; try { W().importCode("FC1:δεν-είναι-κωδικός"); } catch { bad = true; }
-    return { ok: gone && name === "Δοκιμή" && after === before && bad, detail: `${code.length} χαρακτήρες· άκυρος κωδικός απορρίφθηκε: ${bad}` };
+    const B = JSON.parse(before), A = JSON.parse(after || "{}"), diff = Object.keys({ ...B, ...A }).filter(k => JSON.stringify(B[k]) !== JSON.stringify(A[k]));
+    return { ok: gone && name === "Δοκιμή" && !diff.length && bad, detail: `${code.length} χαρακτήρες· άκυρος κωδικός απορρίφθηκε: ${bad}${diff.length ? " · διαφορές: " + diff.join(", ") : ""}` };
   });
   await checkAsync("Μετάβαση από v2: η παλιά πρόοδος γίνεται «Παίκτης 1»", async () => {
     await load({ "fourchoices.v2": { lang: "el", level: 2, mode: "sun", days: { "2|2026-10-21": { score: 1500, correct: 8, total: 10, grid: "", leaves: 0 } }, seen: [5, 6, 7] } });
@@ -754,6 +755,61 @@ async function run() {
     E("state.sound = 'on'");
     return { ok: turn1 && named && turn2 && same && rows === 3 && winner && before === after && visible("home"),
       detail: `σειρά 1: ${turn1} · όνομα στο παιχνίδι: ${named} · σειρά 2: ${turn2} · ίδιες ερωτήσεις/σειρά: ${same} · κατάταξη ${rows - 1} γραμμές · νικητής: ${winner} · δεδομένα παίκτη ανέγγιχτα: ${before === after}` };
+  });
+
+  // ---------- 21. Εβδομαδιαία αναφορά μάθησης (v32) ----------
+  check("Εβδομαδιαία αναφορά: ημερολόγιο απαντήσεων ανά ημέρα/κατηγορία, γραμμή στην αρχική, πίνακας στο προφίλ, στον κωδικό μεταφοράς", () => {
+    const d = E("P().log && P().log[todayKey()]"), r = E("weekReport(P())");
+    E("goHome()");
+    const line = visible("weekLine") && D("weekLine").textContent.includes(String(r.w.n));
+    const sumCats = Object.values(d.c).reduce((a, [n]) => a + n, 0) === d.n;
+    E("openProfile()");
+    const table = D("weekTable").querySelectorAll("tr").length === Object.keys(r.w.c).length + 1;
+    E("goHome()");
+    const inCode = !!JSON.parse(E(`fromB64(${JSON.stringify(E("exportCode()").slice(4))})`)).log;
+    return { ok: d.n > 0 && sumCats && line && table && inCode, detail: `σήμερα ${d.n} απαντήσεις (${d.ok} σωστές) · γραμμή: ${line} · πίνακας: ${table} · κωδικός: ${inCode}` };
+  });
+
+  // ---------- 22. Λειτουργία παιδιού (v32) ----------
+  check("Λειτουργία παιδιού: μόνο Χάλκινο, διπλάσιος χρόνος, μεγαλύτερα γράμματα, χωρίς επιλογή επιπέδου· μεταφέρεται με τον κωδικό· απενεργοποίηση", () => {
+    E("P().level = 2; save()"); E("openProfile()");
+    D("kidSeg").querySelector("button").click();                           // «Ενεργή»
+    const on = E("P().kid") === true && E("level()") === 1 && E("seconds()") === 2 * E("LEVELS[1].seconds") && W().document.body.classList.contains("kid");
+    E("goHome()");
+    const noLevels = D("levels").parentElement.classList.contains("hidden");
+    const inCode = JSON.parse(E(`fromB64(${JSON.stringify(E("exportCode()").slice(4))})`)).kid === true;
+    E("openProfile()"); D("kidSeg").querySelectorAll("button")[1].click();     // «Ανενεργή»
+    const off = !E("P().kid") && E("level()") === 2 && !W().document.body.classList.contains("kid");
+    E("P().level = 1; save()"); E("goHome()");
+    return { ok: on && noLevels && inCode && off, detail: `ενεργή: ${on} · χωρίς επίπεδα: ${noLevels} · κωδικός: ${inCode} · ανενεργή: ${off}` };
+  });
+
+  // ---------- 23. Θέμα της εβδομάδας (v32) ----------
+  await checkAsync("Θέμα της εβδομάδας: ίδιο ημερολόγιο με το build_schedule.py (25/10 Γεωγραφία, 26/10 Ιστορία)· κουμπί με γύρους μόνο από το θέμα", async () => {
+    E("state.sound = 'off'"); E("goHome()");
+    const same = E("weekTheme(new Date(2026, 9, 25)).key") === "geo" && E("weekTheme(new Date(2026, 9, 26)).key") === "hist" && E("weekTheme(new Date(2026, 0, 5)).key") === "myth";
+    const k = E("weekTheme().key");
+    const shown = visible("startTheme") && D("themeLine").textContent.length > 10;
+    D("startTheme").click(); await sleep(30);
+    const ok1 = E("run") && E(`run.items.every(it => ${JSON.stringify(k)} === "gr" ? GREEK_IDS.has(it.q.id) : it.q.cat === ${JSON.stringify(k)})`);
+    E("run = null"); E("goHome()"); E("state.sound = 'on'");
+    return { ok: same && shown && ok1, detail: `ημερολόγιο ίδιο: ${same} · σήμερα: ${k} · ερωτήσεις μόνο του θέματος: ${ok1}` };
+  });
+
+  // ---------- 24. «Σαν σήμερα» (v32) ----------
+  await checkAsync("«Σαν σήμερα»: κάρτα στην αρχική όταν υπάρχει γεγονός της ημέρας· γύρος με αυτές τις ερωτήσεις· ένδειξη 📅 στο παιχνίδι· ποτέ σημερινό/μελλοντικό ημερήσιο", async () => {
+    E("state.sound = 'off'");
+    const id = E("PRACTICE[1][0]"), had = E(`OTD[${id}]`);
+    E(`OTD[${id}] = mmdd()`); E("goHome()");
+    const card = visible("startOtd") && D("startOtd").textContent.includes("📅");
+    D("startOtd").click(); await sleep(30);
+    const items = E("run.items.map(it => it.q.id)"), inRun = E("run.mode") === "otd" && items.includes(id);
+    const future = new Set(E("Object.values(SCHEDULE).flatMap(d => Object.entries(d).filter(([k]) => k >= todayKey()).flatMap(([, v]) => v))"));
+    const safe = items.every(i => !future.has(i));
+    E(`run.i = run.items.findIndex(it => it.q.id === ${id}); renderQuestion(false)`);
+    const badge = !!W().document.querySelector(".gamehead .otd, .meta .otd");
+    E("run = null"); if (had) E(`OTD[${id}] = ${JSON.stringify(had)}`); else E(`delete OTD[${id}]`); E("goHome()"); E("state.sound = 'on'");
+    return { ok: card && inRun && safe && badge, detail: `κάρτα: ${card} · γύρος: ${inRun} (${items.length}) · όχι ημερήσιες: ${safe} · ένδειξη: ${badge} · σύνολο με ημερομηνία: ${E("Object.keys(OTD).length")}` };
   });
 
   // ---------- επαναφορά ----------

@@ -539,6 +539,11 @@
   .valuebar { margin: 0; font-size: 12.5px; color: var(--ok); font-weight: 650; line-height: 1.5; }
   .partyName { font: inherit; padding: 10px 12px; border-radius: 12px; border: var(--border) solid var(--line); background: var(--surface); color: var(--text); }
   #partyTable { width: 100%; } #partyTable td:nth-child(2) { font-weight: 700; } #partyTable tr.win td { color: var(--rose); }
+  /* Εβδομάδα, παιδί, θέμα εβδομάδας (v32) */
+  .weekline { margin: 0; font-size: 13.5px; color: var(--text); background: var(--surface2); border-radius: 12px; padding: 8px 10px; }
+  .themecard { margin: 0; font-size: 13.5px; }
+  body.kid { --base: 19px; --q: 27px; } body.kid .opt .txt { font-size: 1.08em; }
+  .otd { margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c3) 22%, var(--surface)); font-size: 12px; font-weight: 700; }
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
     text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
@@ -622,6 +627,10 @@
     <p id="dateLine" class="muted" style="margin:0"></p>
     <button id="startDaily" class="primary" type="button"></button>
     <p id="homeNext" class="muted small hidden"></p>
+    <p id="weekLine" class="weekline hidden"></p>
+    <p id="themeLine" class="muted themecard"></p>
+    <button id="startTheme" class="secondary endless" type="button"></button>
+    <button id="startOtd" class="secondary endless hidden" type="button"></button>
     <button id="startEndless" class="secondary endless" type="button" data-t="endless"></button>
     <p id="endlessInfo" class="muted small" style="margin:0"></p>
     <button id="startGreece" class="secondary endless" type="button" data-t="greece"></button>
@@ -699,6 +708,17 @@
       <h2 data-t="catTitle"></h2>
       <p class="muted small" data-t="catText"></p>
       <div id="catList" class="cats"></div>
+    </div>
+    <div>
+      <h2 data-t="weekTitle"></h2>
+      <p id="weekNone" class="muted small hidden" data-t="weekNone"></p>
+      <table id="weekTable" class="lvltable"></table>
+      <p id="weekWeak" class="muted small" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <h2 data-t="kidTitle"></h2>
+      <p class="muted small" data-t="kidText"></p>
+      <div id="kidSeg" class="seg" role="group"></div>
     </div>
     <div>
       <h2 id="achTitle"></h2>
@@ -846,7 +866,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v31";
+const APP_VERSION = "v32";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -878,6 +898,15 @@ const UI = {
     practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
     endless: "♾ Συνεχές παιχνίδι", endlessScore: "Συνεχές παιχνίδι", nextRound: "Επόμενος γύρος →",
     greece: "Ελλάδα", greeceScore: "Ελλάδα",
+    weekLine: (n, pct, d, fix, best) => `📈 Η εβδομάδα σου: ${n} ερωτήσεις · ${pct}% σωστές${d === null ? "" : ` (${d >= 0 ? "+" : ""}${d}% από την προηγούμενη)`}`
+      + (fix ? ` · ${fix} παλιά λάθη διορθώθηκαν` : "") + (best ? ` · καλύτερα: ${best}` : ""),
+    weekTitle: "📈 Αναφορά εβδομάδας (τελευταίες 7 ημέρες)", weekNone: "Δεν έχεις παίξει τις τελευταίες 7 ημέρες.",
+    weekCols: ["Κατηγορία", "Ερωτήσεις", "Σωστές"], weekWeak: c => `Για εξάσκηση: ${c}.`,
+    kidTitle: "👧 Λειτουργία παιδιού", kidOn: "Ενεργή", kidOff: "Ανενεργή",
+    kidText: "Μόνο 🥉 Χάλκινο, διπλάσιος χρόνος σε κάθε ερώτηση, μεγαλύτερα γράμματα και ανάγνωση των ερωτήσεων (όπου υπάρχει φωνή).",
+    themeWeek: (t, end) => `🗓 Θέμα της εβδομάδας: ${t} (έως ${end}) — περισσότερες τέτοιες ερωτήσεις στο ημερήσιο.`,
+    themePlay: t => `Παίξε το θέμα: ${t}`, themeScore: t => `Θέμα: ${t}`, onThisDay: "📅 Σαν σήμερα",
+    otdPlay: (d, n) => `📅 Σαν σήμερα, ${d}: ${n} ${n === 1 ? "ερώτηση" : "ερωτήσεις"} για γεγονότα αυτής της μέρας`,
     reportBtn: "⚑ Αναφορά λάθους", reportDone: "⚑ Αναφέρθηκε — αλλαγή", reportTitle: "Τι δεν πάει καλά σε αυτή την ερώτηση;",
     reportReasons: { wrong: "Λάθος «σωστή» απάντηση", second: "Και άλλη επιλογή είναι σωστή", typo: "Λάθος διατύπωση ή ορθογραφία", old: "Παλιά ή αμφίβολη πληροφορία" },
     reportNote: "Σχόλιο (προαιρετικό, χωρίς προσωπικά στοιχεία)", reportSave: "Αποθήκευση αναφοράς",
@@ -1029,6 +1058,15 @@ const UI = {
     practice: "Free practice", home: "Home",
     endless: "♾ Endless play", endlessScore: "Endless play", nextRound: "Next round →",
     greece: "Greece", greeceScore: "Greece",
+    weekLine: (n, pct, d, fix, best) => `📈 Your week: ${n} questions · ${pct}% correct${d === null ? "" : ` (${d >= 0 ? "+" : ""}${d}% vs previous)`}`
+      + (fix ? ` · ${fix} past mistakes fixed` : "") + (best ? ` · best: ${best}` : ""),
+    weekTitle: "📈 Weekly report (last 7 days)", weekNone: "You haven't played in the last 7 days.",
+    weekCols: ["Category", "Questions", "Correct"], weekWeak: c => `To practise: ${c}.`,
+    kidTitle: "👧 Child mode", kidOn: "On", kidOff: "Off",
+    kidText: "Only 🥉 Bronze, double time for every question, larger text and questions read aloud (where a voice exists).",
+    themeWeek: (t, end) => `🗓 Theme of the week: ${t} (until ${end}) — more such questions in the daily.`,
+    themePlay: t => `Play the theme: ${t}`, themeScore: t => `Theme: ${t}`, onThisDay: "📅 On this day",
+    otdPlay: (d, n) => `📅 On this day, ${d}: ${n} ${n === 1 ? "question" : "questions"} about events of this date`,
     reportBtn: "⚑ Report a mistake", reportDone: "⚑ Reported — change", reportTitle: "What is wrong with this question?",
     reportReasons: { wrong: "The “correct” answer is wrong", second: "Another option is also correct", typo: "Wording or spelling error", old: "Outdated or doubtful fact" },
     reportNote: "Comment (optional, no personal data)", reportSave: "Save report",
@@ -1255,7 +1293,7 @@ function markSeen(id) {
   if (!p || SEEN.has(id)) return;
   SEEN.add(id); p.seen = [...SEEN]; save();
 }
-const level = () => (P() ? P().level : 1);
+const level = () => (P() ? (P().kid ? 1 : P().level) : 1);   // παιδί: μόνο Χάλκινο (v32)
 
 // ---------- ομιλία: ανάγνωση ερωτήσεων (D28) ----------
 // Μόνο φωνές αποθηκευμένες στη συσκευή (localService): οι «διαδικτυακές» φωνές στέλνουν το κείμενο σε server (Κ3).
@@ -1375,6 +1413,15 @@ function dailySet(key, lvl) {
 const PRACTICE_IDS = typeof PRACTICE === "object" ? PRACTICE : {};
 // Ερωτήσεις σχετικές με την Ελλάδα (schedule.js, D33): για το κουμπί «🇬🇷 Ελλάδα».
 const GREEK_IDS = new Set(typeof GREEK === "object" ? GREEK : []);
+// «Σαν σήμερα» (v32): id → «ΜΜ-ΗΗ» του γεγονότος (schedule.js).
+const OTD = typeof ONTHISDAY === "object" ? ONTHISDAY : {};
+const mmdd = (d = new Date()) => `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Ερωτήσεις «Σαν σήμερα» για σήμερα, από όλα τα επίπεδα, εκτός από σημερινό/μελλοντικό ημερήσιο (μπορεί να έχουν ειδωθεί: είναι μπόνους).
+function otdIds() {
+  const today = todayKey(), key = mmdd(), daily = new Set();
+  for (const days of Object.values(SCHED)) for (const [day, list] of Object.entries(days)) if (day >= today) list.forEach(id => daily.add(id));
+  return Object.keys(OTD).map(Number).filter(id => OTD[id] === key && BY_ID.has(id) && !daily.has(id));
+}
 function practicePool(lvl) {
   const today = todayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
   for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => ids.add(id));
@@ -1438,12 +1485,14 @@ function recordAnswer(q, ok, instant, p = P()) {
   // Για την επανάληψη του συνεχούς (D30): 2 = λάθος/λήξη/έξοδος, 1 = σωστή μετά από σκέψη· με ⚡ βγαίνει από τη λίστα.
   const rv = (p.review = p.review || {});
   // «Επιτυχία στα παλιά λάθη» (v30): κάθε νέα απάντηση σε ερώτηση που είχε απαντηθεί λάθος (από τη v30 και μετά).
+  p._fixNow = rv[q.id] === 2 && ok;                                    // για το εβδομαδιαίο ημερολόγιο (v32)
   if (rv[q.id] === 2) {
     const m = (p.mastery = p.mastery || { n: 0, ok: 0 });
     m.n++; if (ok) m.ok++;
     if (run) { run.fixTries = (run.fixTries || 0) + 1; if (ok) run.fixed = (run.fixed || 0) + 1; }
   }
   if (!ok) rv[q.id] = 2; else if (instant) delete rv[q.id]; else rv[q.id] = 1;
+  logAnswer(p, q, ok, instant);
   save();
 }
 const achName = a => state.lang === "el" ? a[2] : a[3];
@@ -1490,7 +1539,7 @@ if (navigator.getBattery) {
 // ---------- DOM ----------
 const $ = id => document.getElementById(id);
 const T = () => UI[state.lang];
-const seconds = () => LEVELS[run ? run.level : level()].seconds;
+const seconds = () => LEVELS[run ? run.level : level()].seconds * (P() && P().kid && !(run && run.mode === "party") ? 2 : 1);   // παιδί: ×2 (v32)
 
 function buildSeg(box, entries, current, onPick) {
   box.replaceChildren();
@@ -1541,9 +1590,14 @@ function applyLang() {
   $("startPractice").disabled = $("startRelaxed").disabled = fresh === 0;
   $("again").disabled = fresh === 0 && !(lastResult && lastResult.mode === "endless");
   $("endlessInfo").textContent = p ? T().endlessInfo(fresh) : "";
+  renderWeek(); renderThemeWeek(); applyKid();
+  $("levels").parentElement.classList.toggle("hidden", !!(p && p.kid));   // παιδί: μόνο Χάλκινο
   const nMist = p ? mistakeIds(level()).length : 0;
   $("startMistakes").disabled = nMist === 0;
   $("mistakesInfo").textContent = p ? T().mistakesInfo(nMist, masteryText(p)) : "";
+  const nOtd = p ? otdIds().length : 0;
+  $("startOtd").classList.toggle("hidden", !nOtd);
+  if (nOtd) $("startOtd").textContent = T().otdPlay(new Date().toLocaleDateString(state.lang === "el" ? "el-GR" : "en-GB", { day: "numeric", month: "long" }), nOtd);
   $("startGreece").classList.toggle("hidden", !GREEK_IDS.size); $("greeceInfo").classList.toggle("hidden", !GREEK_IDS.size || !p);
   if (p) $("greeceInfo").textContent = T().greeceInfo(practicePool(level()).filter(q => GREEK_IDS.has(q.id)).length);
   const chOk = p ? challengePool(level()).length >= ROUND : false;
@@ -1682,7 +1736,7 @@ function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64
 function exportCode(id = state.current) {
   const p = state.profiles[id];
   return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
-    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, form: p.form, mastery: p.mastery, created: p.created }));
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, form: p.form, mastery: p.mastery, log: p.log, kid: p.kid, created: p.created }));
 }
 // Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
 function cleanStats(s) {
@@ -1753,6 +1807,13 @@ function importCode(code) {
   if (Object.keys(form).length) state.profiles[id].form = form;
   const ms = d.mastery;                                              // επιτυχία στα παλιά λάθη (v30)
   if (ms && Number.isInteger(ms.n) && Number.isInteger(ms.ok) && ms.ok >= 0 && ms.n >= ms.ok) state.profiles[id].mastery = { n: ms.n, ok: ms.ok };
+  if (d.kid === true) state.profiles[id].kid = true;                // λειτουργία παιδιού (v32)
+  const lg = {};                                                     // εβδομαδιαίο ημερολόγιο (v32): μόνο σωστή μορφή
+  for (const [k, v] of Object.entries(d.log && typeof d.log === "object" ? d.log : {})) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && v && [v.n, v.ok, v.fix].every(x => Number.isInteger(x) && x >= 0) && v.c && typeof v.c === "object")
+      lg[k] = { n: v.n, ok: v.ok, fix: v.fix, c: Object.fromEntries(Object.entries(v.c).filter(([c, a]) => CATEGORIES[c] && Array.isArray(a) && a.length === 2 && a.every(Number.isInteger))) };
+  }
+  if (Object.keys(lg).length) state.profiles[id].log = lg;
   save();
   return state.profiles[id].name;
 }
@@ -1945,7 +2006,8 @@ let endlessSession = null;
 // Θέμα του συνεχούς (v28): null = όλες οι ερωτήσεις, "gr" = μόνο σχετικές με την Ελλάδα (κουμπί «🇬🇷 Ελλάδα»).
 let endlessTheme = null;
 const themeOk = id => endlessTheme === "gr" ? GREEK_IDS.has(id)
-  : endlessTheme === "mistakes" ? ((P() && P().review) || {})[id] === 2 : true;
+  : endlessTheme === "mistakes" ? ((P() && P().review) || {})[id] === 2
+  : endlessTheme && endlessTheme.startsWith("cat:") ? BY_ID.get(id) && BY_ID.get(id).cat === endlessTheme.slice(4) : true;
 // Λάθη που περιμένουν επανάληψη σε ένα επίπεδο (μόνο από επιτρεπτές ερωτήσεις: απόθεμα και περασμένα ημερήσια).
 function mistakeIds(lvl) {
   const rv = (P() && P().review) || {}, today = todayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
@@ -1985,7 +2047,9 @@ function start(mode) {
   if (live) { resumeDaily(key, lvl, live); return; }
   if (mode !== "endless") endlessSession = null;                     // νέο συνεχές ξεκινά από την αρχή
   else if (!endlessSession) endlessSession = { rounds: 0, total: 0, recent: [] };
-  const set = mode === "daily" ? dailySet(key, lvl) : mode === "endless" ? endlessSet(lvl) : practiceSet(lvl);
+  const set = mode === "daily" ? dailySet(key, lvl) : mode === "endless" ? endlessSet(lvl)
+    : mode === "otd" ? (() => { const seed = (Math.random() * 2 ** 31) | 0; return { questions: shuffled(otdIds().map(id => BY_ID.get(id)), rng(seed)).slice(0, ROUND), seed, scheduled: true }; })()
+    : practiceSet(lvl);
   if (!set.questions.length) { goHome(); return; } // δεν υπάρχουν αθέατες ερωτήσεις εξάσκησης
   const rand = rng(set.seed * 7919);
   run = {
@@ -2238,6 +2302,9 @@ function renderQuestion(keepState) {
   const data = q[state.lang];
   $("progress").textContent = (run.party ? `${run.party} · ` : "") + `${T().q} ${run.i + 1}/${run.items.length}`;
   $("category").replaceChildren(catIcon(q.cat), CATEGORIES[q.cat][state.lang]);
+  const oldOtd = $("category").parentElement.querySelector(".otd");          // ένδειξη «Σαν σήμερα» (v32)
+  if (oldOtd) oldOtd.remove();
+  if (OTD[q.id] === mmdd()) { const b = document.createElement("span"); b.className = "otd"; b.textContent = T().onThisDay; $("category").after(b); }
   $("game").classList.toggle("relaxed", run.mode === "relaxed");
   if (!keepState) { $("game").classList.remove("urgent"); $("timerRing").style.strokeDashoffset = "0"; }
   renderDots();
@@ -2504,7 +2571,9 @@ function renderResult(r) {
   $("resultLabel").textContent = r.mode === "daily" ? `${T().daily} · ${lvlName} · ${r.key}`
     : r.mode === "challenge" ? `${T().challengeScore} · ${lvlName}`
     : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}`
-    : r.mode === "endless" ? `${r.theme === "gr" ? T().greeceScore : r.theme === "mistakes" ? T().mistakesScore : T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
+    : r.mode === "otd" ? `${T().onThisDay} · ${lvlName}`
+    : r.mode === "endless" ? `${r.theme === "gr" ? T().greeceScore : r.theme === "mistakes" ? T().mistakesScore
+      : r.theme && r.theme.startsWith("cat:") ? T().themeScore(themeName(r.theme.slice(4))) : T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
     : `${T().practiceScore} · ${lvlName}`;
   const relaxed = r.mode === "relaxed";
   const badge = $("fairBadge");
@@ -2526,7 +2595,7 @@ function renderResult(r) {
   const fmt = v => v.toLocaleString(state.lang === "el" ? "el-GR" : "en-GB");
   $("statBest").textContent = fmt(s.best); $("statTotal").textContent = fmt(s.total);
   const endless = r.mode === "endless";
-  $("share").classList.toggle("hidden", r.mode === "practice" || relaxed || endless);
+  $("share").classList.toggle("hidden", r.mode === "practice" || r.mode === "otd" || relaxed || endless);
   $("again").textContent = endless ? T().nextRound : relaxed ? T().relaxed : T().practice;
   $("again").className = endless ? "primary" : "secondary";
   $("result").classList.toggle("endless", endless);
@@ -2585,6 +2654,12 @@ function renderProfile() {
   const t = totals(p);
   $("profileSummary").textContent = T().profileSummary(t.points, rankName(t.points), t.days, (p.seen || []).length);
   fillTreasure($("profileTreasure"), p.coins || 0, null);
+  renderWeekTable(p);
+  buildSeg($("kidSeg"), [[true, T().kidOn], [false, T().kidOff]], !!p.kid, v => {
+    p.kid = v;
+    if (v && TTS && state.voice === "off") state.voice = "female";      // ανάγνωση για τα παιδιά, όπου υπάρχει φωνή
+    save(); applyKid(); renderProfile();
+  });
   renderIndicators(p);
   renderHistory(p);
   const cats = $("catList");
@@ -2790,6 +2865,81 @@ $("chOpen").addEventListener("click", () => { const t = $("chIn").value; $("chIn
 $("chAccept").addEventListener("click", () => { const c = shownChallenge; shownChallenge = null; if (c) startChallenge(c); });
 $("chBack").addEventListener("click", () => { shownChallenge = null; goHome(); });
 $("startRelaxed").addEventListener("click", () => start("relaxed"));
+// ---------- εβδομαδιαία αναφορά μάθησης (v32) ----------
+// Ημερολόγιο ανά ημέρα: n απαντήσεις, ok σωστές, fix παλιά λάθη που διορθώθηκαν, c = {κατηγορία: [n, ok]}. Κρατά 28 ημέρες.
+function logAnswer(p, q, ok, instant) {
+  const day = todayKey(), log = (p.log = p.log && typeof p.log === "object" ? p.log : {});
+  const d = (log[day] = log[day] || { n: 0, ok: 0, fix: 0, c: {} });
+  d.n++; if (ok) d.ok++; if (p._fixNow) d.fix++;
+  const c = (d.c[q.cat] = d.c[q.cat] || [0, 0]); c[0]++; if (ok) c[1]++;
+  delete p._fixNow;
+  const keep = new Set(Array.from({ length: 28 }, (_, i) => { const x = new Date(); x.setDate(x.getDate() - i); return todayKey(x); }));
+  for (const k of Object.keys(log)) if (!keep.has(k)) delete log[k];
+}
+function weekSum(p, from) {                                            // from = 0: τελευταίες 7 ημέρες, 7: οι προηγούμενες 7
+  const out = { n: 0, ok: 0, fix: 0, c: {} }, log = (p && p.log) || {};
+  for (let i = from; i < from + 7; i++) {
+    const x = new Date(); x.setDate(x.getDate() - i);
+    const d = log[todayKey(x)];
+    if (!d) continue;
+    out.n += d.n; out.ok += d.ok; out.fix += d.fix || 0;
+    for (const [c, [n, ok]] of Object.entries(d.c || {})) { const t = (out.c[c] = out.c[c] || [0, 0]); t[0] += n; t[1] += ok; }
+  }
+  return out;
+}
+function weekReport(p) {
+  const w = weekSum(p, 0), prev = weekSum(p, 7);
+  if (!w.n) return null;
+  const pct = Math.round(100 * w.ok / w.n), delta = prev.n ? pct - Math.round(100 * prev.ok / prev.n) : null;
+  const rated = Object.entries(w.c).filter(([, [n]]) => n >= 3).map(([c, [n, ok]]) => [c, ok / n, n, ok]).sort((a, b) => b[1] - a[1]);
+  const name = c => (CATEGORIES[c] || {})[state.lang] || c;
+  return { w, pct, delta, best: rated.length ? name(rated[0][0]) : "", weak: rated.length > 1 ? name(rated[rated.length - 1][0]) : "", name };
+}
+function renderWeek() {
+  const p = P(), r = p && weekReport(p);
+  $("weekLine").classList.toggle("hidden", !r);
+  if (r) $("weekLine").textContent = T().weekLine(r.w.n, r.pct, r.delta, r.w.fix, r.best);
+}
+function renderWeekTable(p) {
+  const r = weekReport(p);
+  $("weekNone").classList.toggle("hidden", !!r);
+  $("weekTable").classList.toggle("hidden", !r);
+  $("weekWeak").textContent = r && r.weak ? T().weekWeak(r.weak) : "";
+  if (!r) return;
+  const head = document.createElement("tr");
+  T().weekCols.forEach(c => { const th = document.createElement("th"); th.textContent = c; head.append(th); });
+  const rows = Object.entries(r.w.c).sort((a, b) => b[1][0] - a[1][0]).map(([c, [n, ok]]) => {
+    const tr = document.createElement("tr");
+    [r.name(c), String(n), `${Math.round(100 * ok / n)}%`].forEach(v => { const td = document.createElement("td"); td.textContent = v; tr.append(td); });
+    return tr;
+  });
+  $("weekTable").replaceChildren(head, ...rows);
+}
+
+// ---------- θέμα της εβδομάδας (v32) ----------
+// Ίδιο για όλους: εβδομάδες από τη Δευτέρα 5/1/2026, κυκλικά. Το build_schedule.py δίνει προτεραιότητα στο θέμα στο ημερήσιο.
+const WEEK_THEMES = ["myth", "geo", "hist", "arts", "sci", "sport", "life", "lang", "math", "gr"];
+function weekTheme(d = new Date()) {
+  const base = Date.UTC(2026, 0, 5), now = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const w = Math.floor((now - base) / (7 * 864e5));
+  const end = new Date(base + (w * 7 + 6) * 864e5);
+  return { key: WEEK_THEMES[((w % WEEK_THEMES.length) + WEEK_THEMES.length) % WEEK_THEMES.length], end };
+}
+const themeName = k => k === "gr" ? T().greece : (CATEGORIES[k] || {})[state.lang] || k;
+function renderThemeWeek() {
+  const t = weekTheme(), end = t.end.toLocaleDateString(state.lang === "el" ? "el-GR" : "en-GB", { weekday: "long", day: "numeric", month: "numeric" });
+  $("themeLine").textContent = T().themeWeek(themeName(t.key), end);
+  $("startTheme").textContent = T().themePlay(themeName(t.key));
+  $("startTheme").classList.toggle("hidden", !P());
+}
+$("startTheme").addEventListener("click", () => {
+  const k = weekTheme().key;
+  endlessSession = null; endlessTheme = k === "gr" ? "gr" : `cat:${k}`; start("endless");
+});
+
+// ---------- λειτουργία παιδιού (v32) ----------
+function applyKid() { document.body.classList.toggle("kid", !!(P() && P().kid)); }
+
 // ---------- μπάρα αποτελέσματος ----------
 // Ένα κελί ανά ερώτηση (ολόκληρο emoji, ακόμη και με σύνθετους χαρακτήρες) — χωρά πάντα στο πλάτος (v27).
 function fillGrid(el, grid) {
@@ -2960,6 +3110,7 @@ $("levelUpLater").addEventListener("click", () => closeLevelUp(false));
 $("startEndless").addEventListener("click", () => { endlessSession = null; endlessTheme = null; start("endless"); });
 $("startGreece").addEventListener("click", () => { endlessSession = null; endlessTheme = "gr"; start("endless"); });
 $("startMistakes").addEventListener("click", () => { endlessSession = null; endlessTheme = "mistakes"; start("endless"); });
+$("startOtd").addEventListener("click", () => start("otd"));
 $("again").addEventListener("click", () => start(lastResult && ["relaxed", "endless"].includes(lastResult.mode) ? lastResult.mode : "practice"));
 $("home2").addEventListener("click", goHome);
 $("share").addEventListener("click", share);
