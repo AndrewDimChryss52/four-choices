@@ -77,7 +77,7 @@
 
   /* ---------- Βάση ---------- */
   * { box-sizing: border-box; }
-  html, body { margin: 0; }
+  html, body { margin: 0; overflow-x: clip; }   /* ποτέ οριζόντια κύλιση στο κινητό (v23) */
   body {
     background: var(--bg); color: var(--text);
     font: var(--base)/1.5 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -303,6 +303,7 @@
   .opt .key { background: var(--q-c); }
   .opt:nth-child(3) .key { color: var(--c3-text); }
   .dial { position: relative; width: min(100%, 380px); margin: 4px auto 0; }
+  @supports (height: 100svh) { .dial { width: min(100%, 380px, max(250px, calc(100svh - 300px))); } }
   .dial:not(.list) .options { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; aspect-ratio: 1;
     border-radius: 50%; overflow: hidden; background: var(--line); box-shadow: var(--shadow-lift); }
   .dial:not(.list) .opt { border: 0; border-radius: 0; min-height: 0; height: 100%; box-shadow: none; position: relative;
@@ -376,7 +377,11 @@
   .ci .fill { fill: currentColor; }
   .titlerow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .titlerow h1 { margin: 0; }
-  .homeowl { width: 64px; flex: none; margin: -6px -4px -10px 0; }
+  .homeowl { width: 64px; flex: none; margin: -6px 0 -10px 0; }
+  .homeowl .owl { width: 100%; height: auto; display: block; }             /* να μη βγαίνει έξω από την οθόνη (v23) */
+  /* Κινητά με χαμηλή οθόνη (v23): μικρότερη σκηνή, ο κύκλος προσαρμόζεται και στο ύψος */
+  @media (max-height: 760px) { .scene { height: 112px; } .scene .owl { width: 74px; height: 80px; } .walker { scale: .82; transform-origin: bottom; }
+    .scene-msg { font-size: 15px; margin-bottom: 4px; } }
   .scene { position: relative; height: 140px; margin: 2px 0 0; overflow: hidden; }
   .scene > svg, .scene > div { position: absolute; bottom: 0; }
   .scene-msg { text-align: center; font-weight: 700; margin: 0 0 8px; font-size: 16px; }
@@ -751,7 +756,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v22";
+const APP_VERSION = "v23";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -2147,7 +2152,11 @@ function answer(optIdx, reason) {
   if (ok && trailingCorrect() >= 3) leap();
   else if (reason !== "left") playSound(optIdx === null ? "timeout" : "bad");
   renderExplain();
-  if (reason !== "left") $("nextBtn").focus({ preventScroll: true });
+  if (reason !== "left") {
+    $("nextBtn").focus({ preventScroll: true });
+    // Στο κινητό το «Επόμενη» είναι συχνά κάτω από την οθόνη: κύλιση ώστε να φαίνεται (v23).
+    $("nextBtn").scrollIntoView({ block: "nearest", behavior: motionOff() ? "auto" : "smooth" });
+  }
 }
 
 // Άμυνα: αν η εφαρμογή κρυφτεί ενώ τρέχει ερώτηση (αλλαγή εφαρμογής/καρτέλας), η ερώτηση ακυρώνεται.
