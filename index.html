@@ -367,6 +367,122 @@
   #result.endless .stats { display: none; } #result.endless #again { order: -1; }
   #nextIn { font-variant-numeric: tabular-nums; }
   /* Γιορτή: αστεράκια που «σκάνε», αναπήδηση μηνύματος */
+  /* ---------- εικονογράφηση (v22): γραμμικά SVG, κινήσεις μόνο με CSS ----------
+     Η στατική πόζα (χωρίς κίνηση) είναι πάντα ήρεμη και ολοκληρωμένη: στη «Μπαταρία» ή με «λιγότερες κινήσεις»
+     ο γενικός κανόνας παραπάνω σβήνει τις κινήσεις και μένει αυτή. */
+  :root { --rose: #d94c76; --rose-l: #f6abc1; --gold: #e6a91f; --gold-d: #9c6a06; --gold-l: #f8dc7c; }
+  .ci { width: 1.2em; height: 1.2em; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+    vertical-align: -.24em; margin-right: .3em; flex: none; }
+  .ci .fill { fill: currentColor; }
+  .titlerow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .titlerow h1 { margin: 0; }
+  .homeowl { width: 64px; flex: none; margin: -6px -4px -10px 0; }
+  .scene { position: relative; height: 140px; margin: 2px 0 0; overflow: hidden; }
+  .scene > svg, .scene > div { position: absolute; bottom: 0; }
+  .scene-msg { text-align: center; font-weight: 700; margin: 0 0 8px; font-size: 16px; }
+  .scene-msg.win { color: var(--rose); }
+  .scene-msg.think { color: var(--c1); }
+  .owl { width: 92px; height: 100px; overflow: visible; }
+  .owl .o-shell { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
+  .owl .o-tuft { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+  .owl .o-wing { fill: color-mix(in srgb, var(--c2) 26%, var(--surface)); stroke: var(--accent); stroke-width: 2.6; stroke-linejoin: round; }
+  .owl .o-belly { fill: none; stroke: var(--c1); stroke-width: 2.2; stroke-linecap: round; }
+  .owl .o-eye { fill: #fff; stroke: var(--accent); stroke-width: 2.4; }
+  .owl .o-pupil { fill: #15202b; }
+  .owl .o-beak { fill: var(--c3); }
+  .owl .o-feet { fill: none; stroke: var(--c3); stroke-width: 3; stroke-linecap: round; }
+  .owl .o-cheek { fill: var(--rose-l); opacity: .7; }
+  .owl .o-q { fill: none; stroke: var(--c1); stroke-width: 3; stroke-linecap: round; }
+  .owl .o-spark { fill: none; stroke: var(--c3); stroke-width: 2.4; stroke-linecap: round; }
+  .owl .o-eyes { transform-origin: 60px 56px; animation: blink 3.6s 1s 4; }
+  .owl .o-wl { transform-origin: 32px 64px; } .owl .o-wr { transform-origin: 88px 64px; }
+  .owl.joy .o-body { animation: hop .5s ease-in-out 6 alternate; }
+  .owl.joy .o-wl { animation: flapL .25s ease-in-out 12 alternate; }
+  .owl.joy .o-wr { animation: flapR .25s ease-in-out 12 alternate; }
+  .owl.joy .o-spark, .owl.flip .o-spark { animation: twinkle .9s ease-in-out 4 alternate; }
+  .owl.flip .o-body { transform-origin: 60px 68px; animation: tumble 1.5s cubic-bezier(.45, 0, .3, 1) .4s 2; }
+  .owl.flip .o-wl { animation: flapL .25s ease-in-out 14 alternate; }
+  .owl.flip .o-wr { animation: flapR .25s ease-in-out 14 alternate; }
+  .owl.think .o-body { transform-origin: 60px 110px; rotate: -5deg; }
+  .owl.think .o-scratch { transform-origin: 88px 66px; animation: scratch .22s ease-in-out .6s 16 alternate; }
+  .owl.think .o-pupil { translate: 2px -3px; }
+  .owl.think .o-q { animation: ask 1.6s ease-in-out .3s 3 both; }
+  .owl.think .o-q + .o-q { animation-delay: .9s; }
+  .owl.idle .o-wr { animation: flapR .4s ease-in-out 1.2s 4 alternate; }
+  @keyframes blink { 0%, 93%, 100% { scale: 1 1; } 96% { scale: 1 .1; } }
+  @keyframes hop { from { translate: 0 0; } to { translate: 0 -12px; } }
+  @keyframes flapL { from { rotate: 0deg; } to { rotate: 38deg; } }
+  @keyframes flapR { from { rotate: 0deg; } to { rotate: -38deg; } }
+  @keyframes tumble { 0% { transform: none; } 35% { transform: translateY(-26px); } 75% { transform: translateY(-30px) rotate(360deg); }
+    100% { transform: rotate(360deg); } }
+  @keyframes scratch { from { rotate: 0deg; } to { rotate: 9deg; } }
+  @keyframes ask { 0% { opacity: 0; translate: 0 6px; } 30%, 80% { opacity: 1; translate: 0 0; } 100% { opacity: 1; } }
+  @keyframes twinkle { from { opacity: .25; scale: .7; } to { opacity: 1; scale: 1.1; } }
+  .owl .o-spark { transform-box: fill-box; transform-origin: center; }
+  /* Τριαντάφυλλα και πεταλούδα (νίκη) */
+  .roses { width: 100%; height: 140px; left: 0; overflow: visible; }
+  .r-stem { fill: none; stroke: var(--c4); stroke-width: 2.4; stroke-linecap: round; }
+  .r-leaf { fill: color-mix(in srgb, var(--c4) 45%, var(--surface)); stroke: var(--c4); stroke-width: 1.8; }
+  .r-cup { fill: var(--rose); stroke: color-mix(in srgb, var(--rose) 60%, #000); stroke-width: 1.6; stroke-linejoin: round; }
+  .r-curl { fill: none; stroke: color-mix(in srgb, var(--rose) 45%, #000); stroke-width: 1.6; stroke-linecap: round; }
+  .r-bloom { transform-box: fill-box; transform-origin: 50% 90%; animation: bloom .9s cubic-bezier(.3, 1.6, .5, 1) var(--d, 0s) both; }
+  .petal { fill: var(--rose-l); stroke: var(--rose); stroke-width: 1; transform-box: fill-box; transform-origin: center;
+    animation: fall 2.8s ease-in var(--d, 0s) 2 both; }
+  .bfly { transform-box: fill-box; transform-origin: center; animation: flutter 5s ease-in-out .8s 2 both; }
+  .bfly .bw { fill: color-mix(in srgb, var(--c3) 60%, var(--surface)); stroke: var(--c1); stroke-width: 1.4; transform-box: fill-box;
+    transform-origin: 100% 50%; animation: wing .18s ease-in-out 50 alternate; }
+  .bfly .bw2 { transform-origin: 0% 50%; }
+  @keyframes bloom { from { scale: 0; rotate: -40deg; opacity: 0; } to { scale: 1; rotate: 0deg; opacity: 1; } }
+  @keyframes fall { 0% { translate: 0 -30px; rotate: 0deg; opacity: 0; } 15% { opacity: 1; } 100% { translate: 18px 110px; rotate: 220deg; opacity: 0; } }
+  @keyframes flutter { 0% { translate: 120px 30px; } 30% { translate: 40px -10px; } 60% { translate: -60px 10px; } 100% { translate: 0 0; } }
+  @keyframes wing { from { scale: 1 1; } to { scale: .35 1; } }
+  /* Μανεκέν που περπατά από δεξιά προς τα αριστερά, λικνίζεται και κρατά την υπόσχεση */
+  .walker { left: 52%; width: 74px; height: 112px; animation: walkIn 5.2s cubic-bezier(.25, .1, .35, 1) .2s both; }
+  .walker svg { width: 74px; height: 112px; overflow: visible; }
+  .w-say { position: absolute; bottom: 104px; right: 30px; white-space: nowrap; background: var(--surface); color: var(--c1);
+    border: 2px solid var(--c1); border-radius: 14px 14px 2px 14px; padding: 3px 10px; font-size: 13.5px; font-weight: 700;
+    animation: say .5s ease-out 5.2s both; }
+  .w-line { fill: none; stroke: var(--text); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .w-torso { fill: var(--surface); stroke: var(--text); stroke-width: 2.6; stroke-linejoin: round; }
+  .w-joint { fill: var(--surface); stroke: var(--text); stroke-width: 1.8; }
+  .w-back { stroke: var(--muted); }
+  .w-scarf { fill: none; stroke: var(--c1); stroke-width: 4; stroke-linecap: round; transform-origin: 36px 29px;
+    animation: scarf .3s ease-in-out 18 alternate; }
+  .w-fig { transform-origin: 40px 112px; animation: sway 1.3s ease-in-out 6 alternate; }
+  .w-l1 { transform-origin: 39px 61px; animation: stride .65s ease-in-out 8 alternate; }
+  .w-l2 { transform-origin: 41px 61px; animation: stride .65s ease-in-out 8 alternate-reverse; }
+  .w-a1 { transform-origin: 36px 33px; animation: stride .65s ease-in-out 8 alternate-reverse; }
+  .w-a2 { transform-origin: 44px 33px; animation: stride .65s ease-in-out 8 alternate; }
+  @keyframes walkIn { from { left: 100%; } to { left: 52%; } }
+  @keyframes sway { from { rotate: -4deg; translate: 0 0; } to { rotate: 4deg; translate: 0 -2px; } }
+  @keyframes stride { from { rotate: 22deg; } to { rotate: -22deg; } }
+  @keyframes scarf { from { rotate: -6deg; } to { rotate: 10deg; } }
+  @keyframes say { from { opacity: 0; scale: .6; } to { opacity: 1; scale: 1; } }
+  /* Δελφίνι που πηδά πάνω από τον κύκλο σε σερί σωστών */
+  .leap { position: fixed; width: 86px; height: 46px; pointer-events: none; z-index: 51; translate: -50% 0;
+    animation: leap 1.3s ease-in-out both; }
+  .leap path, .dolphin path { stroke-linejoin: round; stroke-linecap: round; }
+  .d-body { fill: color-mix(in srgb, var(--c2) 35%, var(--surface)); stroke: var(--accent); stroke-width: 2; }
+  .d-fin { fill: color-mix(in srgb, var(--c2) 55%, var(--surface)); stroke: var(--accent); stroke-width: 2; }
+  .d-line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  @keyframes leap { 0% { transform: translate(var(--w), 50px) rotate(30deg); opacity: 0; } 15% { opacity: 1; }
+    50% { transform: translate(0, -40px) rotate(0deg); } 85% { opacity: 1; }
+    100% { transform: translate(calc(var(--w) * -1), 50px) rotate(-30deg); opacity: 0; } }
+  /* Θησαυρός: συμβολικά χρυσά νομισματάκια (χωρίς αξία, χωρίς συναλλαγές) */
+  .treasure { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; text-align: left; }
+  .treasure svg { width: 86px; height: 62px; flex: none; overflow: visible; }
+  .treasure b { display: block; font-size: 15px; }
+  .treasure small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+  .t-lid { fill: color-mix(in srgb, var(--c1) 55%, var(--surface)); stroke: var(--gold-d); stroke-width: 2.2; stroke-linejoin: round; }
+  .t-box { fill: color-mix(in srgb, var(--c1) 70%, var(--surface)); stroke: var(--gold-d); stroke-width: 2.2; }
+  .t-band { fill: none; stroke: var(--gold); stroke-width: 3; }
+  .t-lock { fill: var(--gold); stroke: var(--gold-d); stroke-width: 1.6; }
+  .coin { fill: var(--gold); stroke: var(--gold-d); stroke-width: 1.6; }
+  .coin-in { fill: none; stroke: var(--gold-l); stroke-width: 1.3; }
+  .t-jump { transform-box: fill-box; transform-origin: center; animation: coin 1.1s cubic-bezier(.3, .6, .4, 1) var(--d) 2 both; }
+  .t-shine { fill: none; stroke: var(--gold-l); stroke-width: 2; stroke-linecap: round; transform-box: fill-box; transform-origin: center;
+    animation: twinkle .7s ease-in-out var(--d, 0s) 6 alternate; }
+  @keyframes coin { 0% { translate: 0 18px; opacity: 0; } 20% { opacity: 1; } 55% { translate: var(--x) -26px; } 100% { translate: calc(var(--x) * 1.6) 8px; opacity: 0; } }
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
     text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
@@ -440,7 +556,7 @@
   <!-- Αρχική -->
   <section id="home" class="card stack hidden">
     <div class="playerline"><span id="homePlayer"></span><span id="homeTotal"></span></div>
-    <h1 data-t="title"></h1>
+    <div class="titlerow"><h1 data-t="title"></h1><div id="homeOwl" class="homeowl" aria-hidden="true"></div></div>
     <p class="muted" id="rules"></p>
     <div>
       <h2 data-t="level"></h2>
@@ -481,6 +597,7 @@
   <section id="profile" class="card stack hidden">
     <h1 data-t="profileBtn"></h1>
     <p id="profileSummary" class="muted"></p>
+    <div id="profileTreasure" class="treasure"></div>
     <div>
       <h2 data-t="kpiTitle"></h2>
       <div class="stats" style="margin-top:4px">
@@ -586,6 +703,8 @@
   <section id="result" class="card hidden">
     <div id="newAch" class="toast hidden" role="status"></div>
     <div id="vsBox" class="toast hidden" role="status"></div>
+    <div id="scene" class="scene" aria-hidden="true"></div>
+    <p id="sceneMsg" class="scene-msg"></p>
     <p class="muted" id="resultLabel" style="margin-bottom:4px"></p>
     <span id="fairBadge" class="badge"></span>
     <div class="score" id="resultScore"></div>
@@ -593,6 +712,7 @@
     <p id="resultInstant" class="small" style="margin-bottom:4px"></p>
     <p id="resultRules" class="muted small" style="margin-bottom:4px"></p>
     <p id="sessionLine" class="session hidden"></p>
+    <div id="resultTreasure" class="treasure"></div>
     <div class="grid" id="resultGrid" aria-hidden="true"></div>
     <div class="legend" data-t="legend"></div>
     <p class="muted small hidden" id="offSchedule" data-t="offSchedule"></p>
@@ -631,7 +751,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v21";
+const APP_VERSION = "v22";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -696,6 +816,12 @@ const UI = {
     layout: "Διάταξη επιλογών", layouts: { circle: "Κύκλος", list: "Λίστα" },
     layoutHint: "Στον κύκλο οι τέσσερις απαντήσεις είναι τεταρτημόρια με την κλεψύδρα στο κέντρο· πολύ μεγάλες απαντήσεις εμφανίζονται αυτόματα σε λίστα.",
     cheers: ["Σωστά!", "Μπράβο!", "Εξαιρετικά!", "Πολύ καλά!", "Τέλεια!"],
+    artPerfect: "🌹 Κέρδισες! Τέλειος γύρος — τριαντάφυλλα για σένα.", artWin: "🌹 Κέρδισες! Υπέροχος γύρος.",
+    artGood: "Ωραίος γύρος! Η κουκουβάγια χοροπηδά από χαρά.", artSign: "Θα επανέλθω!",
+    artPromise: ["Την επόμενη φορά θα τα πάμε καλύτερα!", "Κάθε λάθος είναι ένα βήμα μάθησης.", "Δεν πειράζει — θα επανέλθουμε πιο δυνατοί!"],
+    treasure: t => `Θησαυρός: ${t.toLocaleString("el-GR")} ${t === 1 ? "χρυσό νομισματάκι" : "χρυσά νομισματάκια"}`,
+    treasureEarned: e => `+${e} από αυτόν τον γύρο (1 για κάθε σωστή, +1 για κάθε ⚡)`,
+    treasureNote: "Συμβολικά — δεν αγοράζονται, δεν πωλούνται, δεν εξαργυρώνονται.",
     misses: ["Δεν πειράζει — η επόμενη είναι δική σου!", "Κοντά ήσουν!", "Τώρα το ξέρεις για πάντα.", "Συνέχισε, πας καλά!"],
     streakMsg: n => `${n} σωστές στη σειρά! 🔥`,
     modeHint: {
@@ -812,6 +938,12 @@ const UI = {
     layout: "Answer layout", layouts: { circle: "Circle", list: "List" },
     layoutHint: "In the circle the four answers are quadrants around the timer; very long answers switch to a list automatically.",
     cheers: ["Correct!", "Well done!", "Excellent!", "Great!", "Perfect!"],
+    artPerfect: "🌹 You won! A perfect round — roses for you.", artWin: "🌹 You won! A wonderful round.",
+    artGood: "Nice round! The owl is hopping with joy.", artSign: "I'll be back!",
+    artPromise: ["Next time we'll do better!", "Every mistake is a step of learning.", "No worries — we'll come back stronger!"],
+    treasure: t => `Treasure: ${t.toLocaleString("en-GB")} gold ${t === 1 ? "coin" : "coins"}`,
+    treasureEarned: e => `+${e} from this round (1 per correct answer, +1 per ⚡)`,
+    treasureNote: "Symbolic only — not bought, sold or redeemed.",
     misses: ["Never mind — the next one is yours!", "So close!", "Now you know it for good.", "Keep going, you are doing well!"],
     streakMsg: n => `${n} correct in a row! 🔥`,
     modeHint: {
@@ -1270,6 +1402,7 @@ function goHome() {
   if (!P()) { openWelcome(); return; }
   if (pendingChallenge) { const c = pendingChallenge; pendingChallenge = null; openChallenge(c); return; }
   applyLang(); show("home"); updateCountdown();
+  $("homeOwl").replaceChildren(svgEl(owlSVG("idle")));
 }
 
 // ---------- παίκτες: δημιουργία, σύνδεση, μεταφορά ----------
@@ -1377,7 +1510,7 @@ function fromB64(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64
 function exportCode(id = state.current) {
   const p = state.profiles[id];
   return "FC1:" + toB64(JSON.stringify({ v: 1, id, name: p.name, pin: p.pin, level: p.level, days: p.days, seen: p.seen,
-    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, created: p.created }));
+    stats: p.stats || {}, ach: p.ach || {}, live: p.live, review: p.review, endless: p.endless, coins: p.coins, created: p.created }));
 }
 // Προαιρετικά πεδία του κωδικού (από v5): κρατάμε μόνο ό,τι έχει σωστή μορφή.
 function cleanStats(s) {
@@ -1441,6 +1574,7 @@ function importCode(code) {
   const review = cleanReview(d.review), endless = cleanEndless(d.endless);
   if (Object.keys(review).length) state.profiles[id].review = review;
   if (endless) state.profiles[id].endless = endless;
+  if (Number.isInteger(d.coins) && d.coins >= 0) state.profiles[id].coins = d.coins;
   save();
   return state.profiles[id].name;
 }
@@ -1476,6 +1610,125 @@ function playSound(name) {
     audioIdle = setTimeout(() => { if (audioCtx && audioCtx.state === "running") audioCtx.suspend(); }, (t - audioCtx.currentTime) * 1000 + 300);
   } catch { /* ο ήχος είναι προαιρετικός */ }
 }
+// ---------- εικονογράφηση (v22) ----------
+// Γραμμικά σχέδια SVG φτιαγμένα στο χέρι, μέσα στον κώδικα: χωρίς αρχεία, εικόνες ή εξωτερικές υπηρεσίες (Κ3).
+// Όλες οι κινήσεις είναι CSS με πεπερασμένες επαναλήψεις (δεν τρέχουν για πάντα και δεν τρώνε μπαταρία).
+const CAT_ICON = {
+  geo: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="3.6" ry="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/>',
+  hist: '<path d="M3.5 8 12 3l8.5 5z"/><path d="M6 11v7M10 11v7M14 11v7M18 11v7M4.5 18.5h15M3 21h18"/>',
+  sci: '<circle class="fill" cx="12" cy="12" r="1.7"/><ellipse cx="12" cy="12" rx="9.5" ry="3.6"/>'
+    + '<ellipse cx="12" cy="12" rx="9.5" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.6" transform="rotate(120 12 12)"/>',
+  myth: '<path d="M13.5 2.5 6 13h5.2l-1.7 8.5L18 10.5h-5.4z"/>',
+  arts: '<path d="M8.5 16C4 14 3.5 8 7 3.5M15.5 16c4.5-2 5-8 1.5-12.5M6 6.5h12M10 6.5V16M12 6.5V16M14 6.5V16"/><path d="M8 16h8v3.5H8z"/>',
+  lang: '<path d="M4 4.5h16v11h-9l-4.5 4v-4H4z"/><path d="M8 8.5h8M8 11.5h5"/>',
+  sport: '<path d="M12 20.5C6.5 19 3.5 14 4.5 7.5M12 20.5c5.5-1.5 8.5-6.5 7.5-13"/>'
+    + '<ellipse cx="3.4" cy="10" rx=".75" ry="1.9" transform="rotate(-25 3.4 10)"/><ellipse cx="4.6" cy="14.2" rx=".75" ry="1.9" transform="rotate(-50 4.6 14.2)"/>'
+    + '<ellipse cx="7.4" cy="17.6" rx=".75" ry="1.9" transform="rotate(-70 7.4 17.6)"/><ellipse cx="20.6" cy="10" rx=".75" ry="1.9" transform="rotate(25 20.6 10)"/>'
+    + '<ellipse cx="19.4" cy="14.2" rx=".75" ry="1.9" transform="rotate(50 19.4 14.2)"/><ellipse cx="16.6" cy="17.6" rx=".75" ry="1.9" transform="rotate(70 16.6 17.6)"/>',
+  life: '<path d="M5 19C5 10 10.5 5 20 4c-.5 9.5-6 15-15 15z"/><path d="m5 19 9.5-9.5M9.5 14.5H14M12 12V8"/>'
+};
+const CAT_COLOR = { geo: "var(--c2)", hist: "var(--c1)", sci: "var(--accent)", myth: "var(--c3)", arts: "var(--c1)",
+  lang: "var(--accent)", sport: "var(--c3)", life: "var(--c4)" };
+// Δημιουργεί στοιχείο από σταθερό, δικό μας SVG (ποτέ από δεδομένα χρήστη).
+function svgEl(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+const catIcon = c => svgEl(`<svg class="ci" viewBox="0 0 24 24" aria-hidden="true" style="color:${CAT_COLOR[c] || "var(--muted)"}">${CAT_ICON[c] || ""}</svg>`);
+const motionOff = () => effectiveMode() === "saver" || !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+// Η κουκουβάγια της Αθηνάς — η μασκότ. Διαθέσεις: idle (ανοιγοκλείνει τα μάτια, χαιρετά), joy (χοροπηδά, χτυπά φτερά),
+// flip (τούμπα από χαρά), think (γέρνει το κεφάλι και το ξύνει με τη φτερούγα, με ερωτηματικά).
+function owlSVG(mood) {
+  const think = mood === "think";
+  const wingR = think
+    ? '<path class="o-wing o-scratch" d="M88 66c9-7 12-22 4-34-6 4-9 13-8 22z"/>'
+    : '<path class="o-wing o-wr" d="M88 62c12 6 14 22 5 33-4-9-6-20-5-33z"/>';
+  const extra = think
+    ? '<path class="o-q" d="M100 12c0-6 9-6 9 0 0 4-4.5 4.5-4.5 8.5M104.5 26v.4"/><path class="o-q" d="M14 28c0-4.5 7-4.5 7 0 0 3-3.5 3.5-3.5 6.5M17.5 39v.4"/>'
+    : mood === "idle" ? ""
+    : '<path class="o-spark" d="M14 20v10M9 25h10"/><path class="o-spark" d="M104 14v8M100 18h8"/><path class="o-spark" d="M108 48v6M105 51h6"/>';
+  return `<svg class="owl ${mood}" viewBox="0 0 120 124" aria-hidden="true">${extra}<g class="o-body">
+    <path class="o-wing o-wl" d="M32 62c-12 6-14 22-5 33 4-9 6-20 5-33z"/>${think ? "" : wingR}
+    <path class="o-shell" d="M60 26c-20 0-31 14-31 36 0 26 13 44 31 44s31-18 31-44c0-22-11-36-31-36z"/>
+    <path class="o-tuft" d="M39 35 33 17l14 11M81 35l6-18-14 11"/>
+    <path class="o-belly" d="M48 84q4 4 8 0 4 4 8 0 4 4 8 0M52 94q4 4 8 0 4 4 8 0"/>
+    <ellipse class="o-cheek" cx="40" cy="70" rx="5" ry="3"/><ellipse class="o-cheek" cx="80" cy="70" rx="5" ry="3"/>
+    <g class="o-eyes"><circle class="o-eye" cx="47" cy="56" r="11"/><circle class="o-eye" cx="73" cy="56" r="11"/>
+      <circle class="o-pupil" cx="48" cy="57" r="4.4"/><circle class="o-pupil" cx="72" cy="57" r="4.4"/></g>
+    <path class="o-beak" d="M55.5 66h9L60 74z"/>
+    <path class="o-feet" d="M51 106l-3 7M55 106v8M65 106v8M69 106l3 7"/>${think ? wingR : ""}</g></svg>`;
+}
+function roseSVG(x, y, k, d) {
+  return `<g transform="translate(${x} ${y}) scale(${k})"><path class="r-stem" d="M0 6C2 18-2 28 0 40"/>
+    <path class="r-leaf" d="M0 22c6-7 13-6 15-3-5 6-11 6-15 3z"/><path class="r-leaf" d="M-1 31c-6-6-12-5-14-2 5 5 10 5 14 2z"/>
+    <g class="r-bloom" style="--d:${d}s"><path class="r-cup" d="M-11 -2c-2-9 5-14 11-12 6-2 13 3 11 12-1 7-5 11-11 11s-10-4-11-11z"/>
+    <path class="r-curl" d="M-5 -4c1-5 7-6 9-2 2 3-1 7-5 6-3-1-3-4 0-5M-9 2c3 5 13 5 17-1"/></g></g>`;
+}
+function winScene(perfect) {
+  const roses = [[34, 70, 1.1, .1], [70, 88, .85, .35], [12, 96, .7, .6], [296, 70, 1.1, .2], [262, 88, .85, .45], [318, 96, .7, .7]]
+    .slice(0, perfect ? 6 : 4).map(r => roseSVG(...r)).join("");
+  const petals = [[60, 10, .2], [140, 0, .9], [220, 6, .5], [280, 2, 1.3], [100, 4, 1.6]]
+    .map(([x, y, d]) => `<ellipse class="petal" style="--d:${d}s" cx="${x}" cy="${y}" rx="4" ry="2.4"/>`).join("");
+  const bfly = '<g class="bfly"><path class="bw" d="M240 40c-8-10-18-6-16 2 2 6 10 6 16-2z"/><path class="bw bw2" d="M240 40c8-10 18-6 16 2-2 6-10 6-16-2z"/>'
+    + '<path class="r-curl" d="M240 36v9"/></g>';
+  return `<svg class="roses" viewBox="0 0 330 140" preserveAspectRatio="xMidYMax meet" aria-hidden="true">${roses}${petals}${perfect ? bfly : ""}</svg>`
+    + `<div style="left:50%;translate:-50% 0">${owlSVG(perfect ? "flip" : "joy")}</div>`;
+}
+function walkerHTML() {
+  return `<div class="walker"><span class="w-say"></span><svg viewBox="0 0 80 120" aria-hidden="true"><g class="w-fig">
+    <g class="w-l2"><path class="w-line w-back" d="M41 61l1 22-1 23h-7"/></g><g class="w-a2"><path class="w-line w-back" d="M44 33l2 13-1 13"/></g>
+    <path class="w-torso" d="M33 31q7-3 14 0l-2 30H35z"/><path class="w-line" d="M40 24v5"/>
+    <ellipse class="w-torso" cx="40" cy="15" rx="8" ry="9.5"/><path class="w-scarf" d="M35 29q-8 2-15 9"/>
+    <g class="w-l1"><path class="w-line" d="M39 61l-1 22 1 23h-7"/><circle class="w-joint" cx="38" cy="83" r="2.2"/></g>
+    <g class="w-a1"><path class="w-line" d="M36 33l-3 13 1 13"/><circle class="w-joint" cx="33" cy="46" r="2"/></g>
+    <circle class="w-joint" cx="40" cy="61" r="2.4"/></g></svg></div>`;
+}
+// Σκηνή αποτελέσματος: τριαντάφυλλα για νίκη (8+), χαρά για 5–7, σκεπτική κουκουβάγια και μανεκέν με υπόσχεση για λιγότερα.
+function sceneFor(r) {
+  const tier = r.correct >= r.total ? "perfect" : r.correct >= 8 ? "win" : r.correct >= 5 ? "good" : "promise";
+  const box = $("scene"), msg = $("sceneMsg");
+  if (tier === "promise") {
+    box.innerHTML = `<div style="left:4%">${owlSVG("think")}</div>` + walkerHTML();
+    box.querySelector(".w-say").textContent = T().artSign;
+    msg.textContent = pickOne(T().artPromise);
+  } else {
+    box.innerHTML = tier === "good" ? `<div style="left:50%;translate:-50% 0">${owlSVG("joy")}</div>` : winScene(tier === "perfect");
+    msg.textContent = tier === "perfect" ? T().artPerfect : tier === "win" ? T().artWin : T().artGood;
+  }
+  msg.className = "scene-msg " + (tier === "promise" ? "think" : tier === "good" ? "" : "win");
+  box.dataset.tier = tier;
+}
+// Ο θησαυρός: μικρό σεντούκι που γεμίζει με χρυσά νομισματάκια (1 ανά σωστή, +1 ανά ⚡). Συμβολικά, χωρίς καμία αξία ή συναλλαγή.
+const PILE = [[50, 37], [62, 35], [74, 37], [86, 36], [56, 31], [68, 30], [80, 31], [62, 25], [74, 25], [44, 38], [92, 38], [68, 20]];
+function treasureSVG(total, jump) {
+  const n = total <= 0 ? 0 : Math.min(PILE.length, Math.ceil(Math.log2(total + 1)));
+  const pile = PILE.slice(0, n).map(([x, y]) => `<ellipse class="coin" cx="${x}" cy="${y}" rx="8" ry="3.6"/>`).join("");
+  const jumps = jump ? [[-14, .3], [10, .55], [-4, .8], [16, 1.05]].map(([x, d]) =>
+    `<g class="t-jump" style="--x:${x}px;--d:${d}s"><circle class="coin" cx="68" cy="30" r="6"/><circle class="coin-in" cx="68" cy="30" r="3.4"/></g>`).join("") : "";
+  const shine = n ? '<path class="t-shine" style="--d:.2s" d="M100 14v8M96 18h8"/><path class="t-shine" style="--d:.6s" d="M34 20v6M31 23h6"/>' : "";
+  return `<svg viewBox="0 0 136 96" aria-hidden="true"><path class="t-lid" d="M24 40c0-18 14-28 44-28s44 10 44 28z"/>${pile}${jumps}
+    <rect class="t-box" x="20" y="40" width="96" height="46" rx="5"/><path class="t-band" d="M20 53h96M44 40v46M92 40v46"/>
+    <rect class="t-lock" x="61" y="48" width="14" height="13" rx="2.5"/>${shine}</svg>`;
+}
+function fillTreasure(el, total, earned) {
+  el.replaceChildren(svgEl(treasureSVG(total, earned > 0 && !motionOff())));
+  const txt = document.createElement("div"), b = document.createElement("b");
+  b.textContent = T().treasure(total);
+  txt.append(b);
+  if (earned != null) { const e = document.createElement("small"); e.textContent = T().treasureEarned(earned); txt.append(e); }
+  const note = document.createElement("small"); note.textContent = T().treasureNote; txt.append(note);
+  el.append(txt);
+}
+// Δελφίνι του Αιγαίου που πηδά από δεξιά προς τα αριστερά πάνω από τον κύκλο (σερί 3+ σωστών).
+function leap() {
+  if (motionOff()) return;
+  const r = $("dial").getBoundingClientRect(), d = svgEl(`<svg class="leap" viewBox="0 0 80 40" aria-hidden="true">
+    <path class="d-fin" d="M36 8Q40 1 46 0q-3 5-1 9"/><path class="d-body" d="M4 20q4-3 9-5 3-6 17-7 20-1 36 9l10-6q-3 7 1 15l-11-5Q48 30 26 27 14 25 8 22z"/>
+    <path class="d-fin" d="M30 26q-2 6-8 8 4-5 4-8"/><path class="d-line" d="M5 20.5q4 .5 7-.5"/><circle cx="15" cy="16" r="1.3" fill="var(--accent)"/></svg>`);
+  d.style.left = `${r.left + r.width / 2}px`; d.style.top = `${r.top + r.height * .55}px`;
+  d.style.setProperty("--w", `${Math.round(r.width * .45)}px`);
+  document.body.append(d);
+  setTimeout(() => d.remove(), 1500);
+}
+
 // Αστεράκια που «σκάνε» από το σημείο της σωστής απάντησης· όχι στη «Μπαταρία» ή με «λιγότερες κινήσεις».
 const STAR_COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)"];
 let fxTimer = null;
@@ -1788,7 +2041,7 @@ function renderQuestion(keepState) {
   const { q, order } = run.items[run.i];
   const data = q[state.lang];
   $("progress").textContent = `${T().q} ${run.i + 1}/${run.items.length}`;
-  $("category").textContent = CATEGORIES[q.cat][state.lang];
+  $("category").replaceChildren(catIcon(q.cat), CATEGORIES[q.cat][state.lang]);
   $("game").classList.toggle("relaxed", run.mode === "relaxed");
   if (!keepState) { $("game").classList.remove("urgent"); $("timerRing").style.strokeDashoffset = "0"; }
   renderDots();
@@ -1891,6 +2144,7 @@ function answer(optIdx, reason) {
   }
   fb.className = "feedback pop " + (ok ? "ok" : "bad");
   if (ok) { burst([...$("options").children].find(b => b.dataset.opt === "0"), instant); playSound(instant ? "instant" : "ok"); }
+  if (ok && trailingCorrect() >= 3) leap();
   else if (reason !== "left") playSound(optIdx === null ? "timeout" : "bad");
   renderExplain();
   if (reason !== "left") $("nextBtn").focus({ preventScroll: true });
@@ -1936,6 +2190,12 @@ function finish() {
     const { cid, ...c } = run.challenge;
     r.challenge = { ...c, cid };
   }
+  if (P()) {                                                            // θησαυρός (v22): 1 ανά σωστή, +1 ανά ⚡
+    const earned = r.correct + (r.instant || 0);
+    P().coins = (P().coins || 0) + earned;
+    save();
+    r.coins = { earned, total: P().coins };
+  }
   run = null;
   r.fresh = unlockAchievements(P()).map(a => a[0]);
   renderResult(r);
@@ -1974,6 +2234,9 @@ function renderResult(r) {
   $("resultRules").textContent = r.rules ? T().rulesOf(r.rules) : "";   // αποτελέσματα πριν από τη v8: χωρίς ένδειξη
   $("resultRules").classList.toggle("hidden", !r.rules);
   $("resultGrid").textContent = r.grid;
+  sceneFor(r);
+  $("resultTreasure").classList.toggle("hidden", !r.coins);
+  if (r.coins) fillTreasure($("resultTreasure"), r.coins.total, r.coins.earned);
   $("offSchedule").classList.toggle("hidden", r.scheduled !== false);
   const s = stats(r.level);
   $("statPlayed").textContent = s.played; $("statStreak").textContent = s.streak;
@@ -2026,6 +2289,7 @@ function renderProfile() {
   if (!p) return;
   const t = totals(p);
   $("profileSummary").textContent = T().profileSummary(t.points, rankName(t.points), t.days, (p.seen || []).length);
+  fillTreasure($("profileTreasure"), p.coins || 0, null);
   renderIndicators(p);
   renderHistory(p);
   const cats = $("catList");
@@ -2033,7 +2297,7 @@ function renderProfile() {
   Object.entries(CATEGORIES).forEach(([c, names]) => {
     const s = (p.stats || {})[c] || { n: 0, ok: 0, fast: 0 };
     const row = document.createElement("div"); row.className = "catrow";
-    const nm = document.createElement("span"); nm.textContent = names[state.lang];
+    const nm = document.createElement("span"); nm.replaceChildren(catIcon(c), names[state.lang]);
     const val = document.createElement("span"); val.className = "muted"; val.textContent = T().catLine(s.n, s.ok, s.fast);
     const bar = document.createElement("div"); bar.className = "bar";
     const fill = document.createElement("div"); fill.style.width = `${s.n ? Math.round(100 * s.ok / s.n) : 0}%`;

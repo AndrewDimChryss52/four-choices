@@ -1,6 +1,6 @@
 // Service worker: αποθηκεύει όλα τα αρχεία ώστε το παιχνίδι να παίζεται χωρίς σήμα (π.χ. στο μετρό).
 // Το VERSION το ενημερώνει αυτόματα το tools/build_schedule.py σε κάθε αλλαγή τράπεζας/προγράμματος.
-const VERSION = "fc-b9-20261025081140";
+const VERSION = "fc-b11-20261025141730";
 const FILES = ["./", "index.html", "questions.js", "schedule.js", "explanations.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", e => {
