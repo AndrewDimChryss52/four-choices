@@ -524,6 +524,9 @@
     body.playing #game .question { font-size: 19px; line-height: 1.25; }
     body.playing .speechrow .chip { height: 30px; font-size: 12.5px; }
     body.playing #game .bar { height: 7px; } }
+  /* Σημαία ως εικόνα (v28): τα emoji σημαιών δεν εμφανίζονται σε όλα τα συστήματα (π.χ. Windows δείχνουν «GR») */
+  #startGreece::before { content: ""; display: inline-block; width: 1.35em; height: .9em; margin-right: .45em; vertical-align: -.1em;
+    border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 27 18'%3E%3Crect width='27' height='18' fill='%230d5eaf'/%3E%3Cpath d='M0 3h27M0 9h27M0 15h27' stroke='%23fff' stroke-width='2'/%3E%3Crect width='10' height='10' fill='%230d5eaf'/%3E%3Cpath d='M5 0v10M0 5h10' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") center / cover; }
   .levelup b, .levelup small { display: block; } .levelup small { color: var(--muted); margin: 2px 0 8px; }
   .levelup .row { display: flex; gap: 8px; } .levelup .row button { flex: 1; min-height: 46px; padding-inline: 10px; }
   .levelup .row .primary { flex: 2; }
@@ -611,6 +614,8 @@
     <p id="homeNext" class="muted small hidden"></p>
     <button id="startEndless" class="secondary endless" type="button" data-t="endless"></button>
     <p id="endlessInfo" class="muted small" style="margin:0"></p>
+    <button id="startGreece" class="secondary endless" type="button" data-t="greece"></button>
+    <p id="greeceInfo" class="muted small" style="margin:0"></p>
     <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
     <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
     <p id="practiceInfo" class="muted small" style="margin:0"></p>
@@ -799,7 +804,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v27";
+const APP_VERSION = "v28";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -830,6 +835,8 @@ const UI = {
     resume: (i, n) => `Συνέχισε το σημερινό (ερώτηση ${i}/${n})`,
     practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
     endless: "♾ Συνεχές παιχνίδι", endlessScore: "Συνεχές παιχνίδι", nextRound: "Επόμενος γύρος →",
+    greece: "Ελλάδα", greeceScore: "Ελλάδα",
+    greeceInfo: n => `Γύροι μόνο με ερωτήσεις για την Ελλάδα — ιστορία, τόποι, μυθολογία, πολιτισμός (${n} σε αυτό το επίπεδο).`,
     endlessInfo: n => n >= 10 ? `Συνεχές: γύροι ο ένας μετά τον άλλον, χωρίς αναμονή· ${n} νέες ερωτήσεις σε αυτό το επίπεδο, μετά επανάληψη όσων δεν ήξερες.`
       : "Συνεχές: έχεις δει σχεδόν όλες τις νέες ερωτήσεις· συνεχίζεις με επανάληψη — πρώτα όσες δεν ήξερες.",
     roundOf: n => `Γύρος ${n}`, reviewTag: "με επανάληψη",
@@ -955,6 +962,8 @@ const UI = {
     resume: (i, n) => `Resume today's quiz (question ${i}/${n})`,
     practice: "Free practice", home: "Home",
     endless: "♾ Endless play", endlessScore: "Endless play", nextRound: "Next round →",
+    greece: "Greece", greeceScore: "Greece",
+    greeceInfo: n => `Rounds only with questions about Greece — history, places, mythology, culture (${n} at this level).`,
     endlessInfo: n => n >= 10 ? `Endless: rounds one after another, no waiting; ${n} new questions at this level, then review of what you missed.`
       : "Endless: you have seen almost every new question; you continue with review — first the ones you missed.",
     roundOf: n => `Round ${n}`, reviewTag: "with review",
@@ -1274,6 +1283,8 @@ function dailySet(key, lvl) {
 // Εξάσκηση: μόνο το απόθεμα εξάσκησης (PRACTICE) και ερωτήσεις ημερών που έχουν ήδη περάσει,
 // ώστε να μη «φανερώνει» μελλοντικά ημερήσια κουίζ· ποτέ ερώτηση που έχει ήδη δει ο παίκτης.
 const PRACTICE_IDS = typeof PRACTICE === "object" ? PRACTICE : {};
+// Ερωτήσεις σχετικές με την Ελλάδα (schedule.js, D33): για το κουμπί «🇬🇷 Ελλάδα».
+const GREEK_IDS = new Set(typeof GREEK === "object" ? GREEK : []);
 function practicePool(lvl) {
   const today = todayKey(), ids = new Set(PRACTICE_IDS[lvl] || []);
   for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => ids.add(id));
@@ -1434,6 +1445,8 @@ function applyLang() {
   $("startPractice").disabled = $("startRelaxed").disabled = fresh === 0;
   $("again").disabled = fresh === 0 && !(lastResult && lastResult.mode === "endless");
   $("endlessInfo").textContent = p ? T().endlessInfo(fresh) : "";
+  $("startGreece").classList.toggle("hidden", !GREEK_IDS.size); $("greeceInfo").classList.toggle("hidden", !GREEK_IDS.size || !p);
+  if (p) $("greeceInfo").textContent = T().greeceInfo(practicePool(level()).filter(q => GREEK_IDS.has(q.id)).length);
   const chOk = p ? challengePool(level()).length >= ROUND : false;
   $("startChallenge").disabled = !chOk;
   $("challengeInfo").classList.toggle("hidden", chOk || !p);
@@ -1689,10 +1702,11 @@ const CAT_ICON = {
     + '<ellipse cx="3.4" cy="10" rx=".75" ry="1.9" transform="rotate(-25 3.4 10)"/><ellipse cx="4.6" cy="14.2" rx=".75" ry="1.9" transform="rotate(-50 4.6 14.2)"/>'
     + '<ellipse cx="7.4" cy="17.6" rx=".75" ry="1.9" transform="rotate(-70 7.4 17.6)"/><ellipse cx="20.6" cy="10" rx=".75" ry="1.9" transform="rotate(25 20.6 10)"/>'
     + '<ellipse cx="19.4" cy="14.2" rx=".75" ry="1.9" transform="rotate(50 19.4 14.2)"/><ellipse cx="16.6" cy="17.6" rx=".75" ry="1.9" transform="rotate(70 16.6 17.6)"/>',
-  life: '<path d="M5 19C5 10 10.5 5 20 4c-.5 9.5-6 15-15 15z"/><path d="m5 19 9.5-9.5M9.5 14.5H14M12 12V8"/>'
+  life: '<path d="M5 19C5 10 10.5 5 20 4c-.5 9.5-6 15-15 15z"/><path d="m5 19 9.5-9.5M9.5 14.5H14M12 12V8"/>',
+  math: '<path d="M17.5 5h-11l6 7-6 7h11"/>'                              // Σ (v28)
 };
 const CAT_COLOR = { geo: "var(--c2)", hist: "var(--c1)", sci: "var(--accent)", myth: "var(--c3)", arts: "var(--c1)",
-  lang: "var(--accent)", sport: "var(--c3)", life: "var(--c4)" };
+  lang: "var(--accent)", sport: "var(--c3)", life: "var(--c4)", math: "var(--c2)" };
 // Δημιουργεί στοιχείο από σταθερό, δικό μας SVG (ποτέ από δεδομένα χρήστη).
 function svgEl(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 const catIcon = c => svgEl(`<svg class="ci" viewBox="0 0 24 24" aria-hidden="true" style="color:${CAT_COLOR[c] || "var(--muted)"}">${CAT_ICON[c] || ""}</svg>`);
@@ -1827,19 +1841,28 @@ let run = null, lastResult = null, timerId = null;
 // Γύροι των 10 χωρίς αναμονή. Πρώτα αθέατες ερωτήσεις (όπως η εξάσκηση)· όταν τελειώσουν, επανάληψη: πρώτα λάθη (2),
 // μετά σωστές με σκέψη (1), μετά όλες — ποτέ σημερινού/μελλοντικού ημερήσιου και όχι από τους τελευταίους 40 του συνεδρίου.
 let endlessSession = null;
+// Θέμα του συνεχούς (v28): null = όλες οι ερωτήσεις, "gr" = μόνο σχετικές με την Ελλάδα (κουμπί «🇬🇷 Ελλάδα»).
+let endlessTheme = null;
+const themeOk = id => endlessTheme !== "gr" || GREEK_IDS.has(id);
 function endlessSet(lvl) {
   const seed = (Math.random() * 2 ** 31) | 0, rand = rng(seed);
-  let qs = shuffled(practicePool(lvl), rand).slice(0, ROUND), review = false;
+  let qs = shuffled(practicePool(lvl).filter(q => themeOk(q.id)), rand).slice(0, ROUND), review = false;
   if (qs.length < ROUND) {
     const today = todayKey(), allowed = new Set(PRACTICE_IDS[lvl] || []);
     for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => allowed.add(id));
     const rv = (P() && P().review) || {}, have = new Set(qs.map(q => q.id));
     const recent = new Set(endlessSession ? endlessSession.recent : []);
-    const cand = [...allowed].filter(id => BY_ID.has(id) && SEEN.has(id) && !have.has(id));
+    const cand = [...allowed].filter(id => BY_ID.has(id) && SEEN.has(id) && !have.has(id) && themeOk(id));
     const fresh = cand.filter(id => !recent.has(id)), pool = fresh.length >= ROUND - qs.length ? fresh : cand;
     const keyed = pool.map(id => [-(rv[id] || 0) - rand(), id]).sort((a, b) => a[0] - b[0]);
     qs = qs.concat(keyed.slice(0, ROUND - qs.length).map(([, id]) => BY_ID.get(id)));
     review = true;
+  }
+  // Θέμα με λίγες ερωτήσεις σε αυτό το επίπεδο: συμπλήρωση από τα άλλα επίπεδα (αθέατες, εκτός ημερήσιων).
+  if (endlessTheme && qs.length < ROUND) {
+    const have = new Set(qs.map(q => q.id));
+    const more = Object.keys(LEVELS).map(Number).filter(l => l !== lvl).flatMap(l => practicePool(l)).filter(q => themeOk(q.id) && !have.has(q.id));
+    qs = qs.concat(shuffled(more, rand).slice(0, ROUND - qs.length));
   }
   return { questions: qs, seed, scheduled: true, review };
 }
@@ -2316,6 +2339,7 @@ function finish() {
     e.bestRounds = Math.max(e.bestRounds, es.rounds);
     save();
     r.session = { rounds: es.rounds, total: es.total, best: e.best };
+    r.theme = endlessTheme;
   }
   if (run.mode === "challenge" && P()) {
     syncChallenge(P());
@@ -2362,7 +2386,7 @@ function renderResult(r) {
   $("resultLabel").textContent = r.mode === "daily" ? `${T().daily} · ${lvlName} · ${r.key}`
     : r.mode === "challenge" ? `${T().challengeScore} · ${lvlName}`
     : r.mode === "relaxed" ? `${T().relaxedScore} · ${lvlName}`
-    : r.mode === "endless" ? `${T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
+    : r.mode === "endless" ? `${r.theme === "gr" ? T().greeceScore : T().endlessScore} · ${lvlName} · ${T().roundOf(r.session ? r.session.rounds : 1)}`
     : `${T().practiceScore} · ${lvlName}`;
   const relaxed = r.mode === "relaxed";
   const badge = $("fairBadge");
@@ -2658,7 +2682,8 @@ function closeLevelUp(go) {
 }
 $("levelUpGo").addEventListener("click", () => closeLevelUp(true));
 $("levelUpLater").addEventListener("click", () => closeLevelUp(false));
-$("startEndless").addEventListener("click", () => { endlessSession = null; start("endless"); });
+$("startEndless").addEventListener("click", () => { endlessSession = null; endlessTheme = null; start("endless"); });
+$("startGreece").addEventListener("click", () => { endlessSession = null; endlessTheme = "gr"; start("endless"); });
 $("again").addEventListener("click", () => start(lastResult && ["relaxed", "endless"].includes(lastResult.mode) ? lastResult.mode : "practice"));
 $("home2").addEventListener("click", goHome);
 $("share").addEventListener("click", share);
