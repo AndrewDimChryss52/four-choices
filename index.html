@@ -530,6 +530,15 @@
   .levelup b, .levelup small { display: block; } .levelup small { color: var(--muted); margin: 2px 0 8px; }
   .levelup .row { display: flex; gap: 8px; } .levelup .row button { flex: 1; min-height: 46px; padding-inline: 10px; }
   .levelup .row .primary { flex: 2; }
+  /* Αναφορά λάθους, παιχνίδι παρέας, πλεονεκτήματα (v31) */
+  .report-btn { margin-top: 6px; font-size: 13.5px; }
+  .report { display: grid; gap: 8px; margin-top: 8px; padding: 10px; border: var(--border) dashed var(--line); border-radius: 12px; }
+  .report .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .report .chip { height: auto; min-height: 34px; padding: 6px 10px; font-size: 13px; text-align: left; max-width: 100%; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+  .report input { font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 10px; border: var(--border) solid var(--line); background: var(--surface); color: var(--text); }
+  .valuebar { margin: 0; font-size: 12.5px; color: var(--ok); font-weight: 650; line-height: 1.5; }
+  .partyName { font: inherit; padding: 10px 12px; border-radius: 12px; border: var(--border) solid var(--line); background: var(--surface); color: var(--text); }
+  #partyTable { width: 100%; } #partyTable td:nth-child(2) { font-weight: 700; } #partyTable tr.win td { color: var(--rose); }
   .fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
   .fx i { position: absolute; font-style: normal; font-size: var(--s, 16px); line-height: 1; translate: -50% -50%;
     text-shadow: 0 0 10px currentColor; animation: fc-star .85s cubic-bezier(.15, .75, .3, 1) forwards; }
@@ -605,6 +614,7 @@
     <div class="playerline"><span id="homePlayer"></span><span id="homeTotal"></span></div>
     <div class="titlerow"><h1 data-t="title"></h1><div id="homeOwl" class="homeowl" aria-hidden="true"></div></div>
     <p class="muted" id="rules"></p>
+    <p class="valuebar" data-t="valueBar"></p>
     <div>
       <h2 data-t="level"></h2>
       <div id="levels" class="seg wide" role="group"></div>
@@ -621,6 +631,14 @@
     <button id="startPractice" class="secondary" type="button" data-t="practice"></button>
     <button id="startRelaxed" class="secondary" type="button" data-t="relaxed"></button>
     <p id="practiceInfo" class="muted small" style="margin:0"></p>
+    <button id="startParty" class="secondary" type="button" data-t="party"></button>
+    <div id="partyBox" class="stack hidden" style="gap:8px">
+      <p class="muted small" style="margin:0" data-t="partyHint"></p>
+      <input class="partyName" maxlength="14" autocomplete="off"><input class="partyName" maxlength="14" autocomplete="off">
+      <input class="partyName" maxlength="14" autocomplete="off"><input class="partyName" maxlength="14" autocomplete="off">
+      <button id="partyGo" class="primary" type="button" data-t="partyGo"></button>
+      <p id="partyMsg" class="muted small" style="margin:0"></p>
+    </div>
     <button id="startChallenge" class="secondary" type="button" data-t="challenge"></button>
     <p id="challengeInfo" class="muted small hidden" style="margin:0" data-t="chNone"></p>
     <button id="chToggle" class="link" type="button" data-t="haveChallenge"></button>
@@ -631,6 +649,16 @@
       <p id="chMsg" class="msg"></p>
     </div>
     <button id="openProfile" class="link" type="button" data-t="profileBtn"></button>
+  </section>
+
+  <!-- Παιχνίδι παρέας (v31): σειρά παίκτη και τελική κατάταξη -->
+  <section id="party" class="card stack hidden">
+    <h1 id="partyTitle"></h1>
+    <p id="partyText"></p>
+    <div id="partyScene" class="scene hidden" aria-hidden="true"></div>
+    <table id="partyTable" class="lvltable hidden"></table>
+    <button id="partyNext" class="primary" type="button"></button>
+    <button id="partyHome" class="secondary" type="button" data-t="home"></button>
   </section>
 
   <!-- Πρόκληση φίλου: εισαγωγή πριν από το παιχνίδι -->
@@ -717,6 +745,15 @@
       <h2 data-t="fairTitle"></h2>
       <p class="muted small" data-t="fairText"></p>
     </div>
+    <div>
+      <h2 data-t="reportsTitle"></h2>
+      <p class="muted small" id="reportsInfo"></p>
+      <div class="stack" style="gap:6px">
+        <button id="reportsShare" class="secondary" type="button" data-t="reportsShare"></button>
+        <button id="reportsClear" class="link" type="button" data-t="reportsClear"></button>
+        <p class="muted small hidden" id="reportsMsg"></p>
+      </div>
+    </div>
     <button id="closeSettings" class="primary" type="button" data-t="back"></button>
   </section>
 
@@ -748,6 +785,8 @@
     <div id="explain" class="explain hidden">
       <p id="explainText"></p>
       <a id="explainSrc" target="_blank" rel="noopener noreferrer"></a>
+      <button id="reportBtn" class="link report-btn" type="button" data-t="reportBtn"></button>
+      <div id="reportSlot"></div>
     </div>
   </section>
 
@@ -807,7 +846,7 @@
 "use strict";
 
 // Έκδοση εφαρμογής (φαίνεται στις Ρυθμίσεις)· ίδια με το APP_VERSION του tools/make_handover.py, που το ελέγχει.
-const APP_VERSION = "v30";
+const APP_VERSION = "v31";
 const ROUND = 10;          // ερωτήσεις ανά ημέρα
 const EPOCH = Date.UTC(2026, 0, 1);
 const STORE = "fourchoices.v3";
@@ -839,6 +878,24 @@ const UI = {
     practice: "Ελεύθερη εξάσκηση", home: "Αρχική",
     endless: "♾ Συνεχές παιχνίδι", endlessScore: "Συνεχές παιχνίδι", nextRound: "Επόμενος γύρος →",
     greece: "Ελλάδα", greeceScore: "Ελλάδα",
+    reportBtn: "⚑ Αναφορά λάθους", reportDone: "⚑ Αναφέρθηκε — αλλαγή", reportTitle: "Τι δεν πάει καλά σε αυτή την ερώτηση;",
+    reportReasons: { wrong: "Λάθος «σωστή» απάντηση", second: "Και άλλη επιλογή είναι σωστή", typo: "Λάθος διατύπωση ή ορθογραφία", old: "Παλιά ή αμφίβολη πληροφορία" },
+    reportNote: "Σχόλιο (προαιρετικό, χωρίς προσωπικά στοιχεία)", reportSave: "Αποθήκευση αναφοράς",
+    reportThanks: "Ευχαριστούμε! Η αναφορά κρατήθηκε σε αυτή τη συσκευή· στείλ’ την από τις Ρυθμίσεις → «Αναφορές λαθών».",
+    reportsTitle: "Αναφορές λαθών",
+    reportsInfo: n => n ? `${n} ${n === 1 ? "αναφορά περιμένει" : "αναφορές περιμένουν"} να σταλούν στον δημιουργό. Μένουν μόνο σε αυτή τη συσκευή μέχρι να τις στείλεις εσύ.`
+      : "Καμία αναφορά. Αν βρεις λάθος σε ερώτηση, πάτα «⚑ Αναφορά λάθους» κάτω από την εξήγηση.",
+    reportsShare: "Αποστολή αναφορών", reportsClear: "Διαγραφή αναφορών", reportsConfirm: "Διαγραφή όλων των αναφορών από αυτή τη συσκευή;",
+    reportsCopied: "Αντιγράφηκαν — επικόλλησέ τες σε μήνυμα προς τον δημιουργό (Viber, email).",
+    reportsHead: v => `Four Choices ${v} — αναφορές λαθών`,
+    party: "👥 Παιχνίδι παρέας (ένα κινητό)", partyHint: "2–4 παίκτες, ίδιες 10 ερωτήσεις, ο ένας μετά τον άλλον — χωρίς ίντερνετ και λογαριασμούς.",
+    partyName: n => `Παίκτης ${n}`, partyGo: "Ξεκινάμε!", partyNeed2: "Γράψε τουλάχιστον 2 ονόματα.",
+    partyNoQ: "Δεν υπάρχουν αρκετές νέες ερωτήσεις σε αυτό το επίπεδο.",
+    partyTurn: n => `Σειρά: ${n}`, partyHand: (n, i, t) => `Δώσε το κινητό στον/στην ${n} (${i} από ${t}). Οι άλλοι, μην κοιτάτε την οθόνη!`,
+    partyReady: "Έτοιμος/η — ξεκίνα", partyWinner: n => `🏆 Νικητής/τρια: ${n}!`, partyTie: "🤝 Ισοπαλία στην κορυφή!",
+    partySame: "Όλοι έπαιξαν τις ίδιες 10 ερωτήσεις, με την ίδια σειρά επιλογών και τους ίδιους κανόνες.",
+    partyAgain: "Ρεβάνς με νέες ερωτήσεις", partyCols: ["#", "Παίκτης", "Πόντοι", "Σωστές", "⚡"],
+    valueBar: "✓ Χωρίς διαφημίσεις · ✓ Χωρίς λογαριασμό · ✓ Παίζει και χωρίς ίντερνετ · ✓ Πηγή σε κάθε απάντηση",
     mistakes: "🎯 Μόνο τα λάθη μου", mistakesScore: "Τα λάθη μου",
     mistakesInfo: (n, m) => (n ? `${n} ${n === 1 ? "ερώτηση που απάντησες λάθος περιμένει" : "ερωτήσεις που απάντησες λάθος περιμένουν"} σε αυτό το επίπεδο· με σωστή απάντηση φεύγουν από τη λίστα.`
       : "Κανένα λάθος προς επανάληψη σε αυτό το επίπεδο — μπράβο!") + (m ? " " + m : ""),
@@ -972,6 +1029,24 @@ const UI = {
     practice: "Free practice", home: "Home",
     endless: "♾ Endless play", endlessScore: "Endless play", nextRound: "Next round →",
     greece: "Greece", greeceScore: "Greece",
+    reportBtn: "⚑ Report a mistake", reportDone: "⚑ Reported — change", reportTitle: "What is wrong with this question?",
+    reportReasons: { wrong: "The “correct” answer is wrong", second: "Another option is also correct", typo: "Wording or spelling error", old: "Outdated or doubtful fact" },
+    reportNote: "Comment (optional, no personal data)", reportSave: "Save report",
+    reportThanks: "Thank you! The report is kept on this device; send it from Settings → “Mistake reports”.",
+    reportsTitle: "Mistake reports",
+    reportsInfo: n => n ? `${n} ${n === 1 ? "report is" : "reports are"} waiting to be sent to the creator. They stay on this device until you send them.`
+      : "No reports. If you find a mistake in a question, tap “⚑ Report a mistake” below the explanation.",
+    reportsShare: "Send reports", reportsClear: "Delete reports", reportsConfirm: "Delete all reports from this device?",
+    reportsCopied: "Copied — paste them into a message to the creator (Viber, email).",
+    reportsHead: v => `Four Choices ${v} — mistake reports`,
+    party: "👥 Party game (one phone)", partyHint: "2–4 players, the same 10 questions, one after another — no internet, no accounts.",
+    partyName: n => `Player ${n}`, partyGo: "Let's go!", partyNeed2: "Enter at least 2 names.",
+    partyNoQ: "There are not enough new questions at this level.",
+    partyTurn: n => `Turn: ${n}`, partyHand: (n, i, t) => `Hand the phone to ${n} (${i} of ${t}). Everyone else, don't look!`,
+    partyReady: "Ready — start", partyWinner: n => `🏆 Winner: ${n}!`, partyTie: "🤝 A tie at the top!",
+    partySame: "Everyone played the same 10 questions, with the same option order and rules.",
+    partyAgain: "Rematch with new questions", partyCols: ["#", "Player", "Points", "Correct", "⚡"],
+    valueBar: "✓ No ads · ✓ No account · ✓ Works offline · ✓ A source for every answer",
     mistakes: "🎯 Only my mistakes", mistakesScore: "My mistakes",
     mistakesInfo: (n, m) => (n ? `${n} ${n === 1 ? "question you got wrong is" : "questions you got wrong are"} waiting at this level; a correct answer removes it from the list.`
       : "No mistakes to review at this level — well done!") + (m ? " " + m : ""),
@@ -1489,7 +1564,7 @@ document.querySelectorAll("header .seg button").forEach(b => b.addEventListener(
   state.lang = b.dataset.lang; save(); applyLang();
 }));
 
-const SECTIONS = ["welcome", "players", "home", "settings", "profile", "challenge", "game", "result"];
+const SECTIONS = ["welcome", "players", "home", "settings", "profile", "challenge", "game", "result", "party"];
 function show(id) {
   SECTIONS.forEach(s => $(s).classList.toggle("hidden", s !== id));
   document.body.classList.toggle("playing", id === "game");
@@ -2037,7 +2112,7 @@ function renderChallenge() {
   const c = shownChallenge;
   if (!c) return;
   $("chFrom").textContent = T().chFrom(LEVELS[c.lvl][state.lang], c.from.score, c.from.correct, ROUND, c.from.instant);
-  $("chGrid").textContent = c.from.grid;
+  fillGrid($("chGrid"), c.from.grid);
   const seen = c.ids.filter(id => SEEN.has(id)).length, warn = [];
   if (seen) warn.push(T().chSeen(seen));
   if (c.from.rules !== RULES) warn.push(T().chOtherRules(c.from.rules));
@@ -2161,7 +2236,7 @@ function renderDots() {
 function renderQuestion(keepState) {
   const { q, order } = run.items[run.i];
   const data = q[state.lang];
-  $("progress").textContent = `${T().q} ${run.i + 1}/${run.items.length}`;
+  $("progress").textContent = (run.party ? `${run.party} · ` : "") + `${T().q} ${run.i + 1}/${run.items.length}`;
   $("category").replaceChildren(catIcon(q.cat), CATEGORIES[q.cat][state.lang]);
   $("game").classList.toggle("relaxed", run.mode === "relaxed");
   if (!keepState) { $("game").classList.remove("urgent"); $("timerRing").style.strokeDashoffset = "0"; }
@@ -2263,6 +2338,8 @@ function renderExplain() {
   const on = !!(run && run.answered);
   const has = on && fillExplain($("explainText"), $("explainSrc"), run.items[run.i].q);
   $("explain").classList.toggle("hidden", !has);
+  $("reportSlot").replaceChildren();
+  if (on) $("reportBtn").textContent = reported(run.items[run.i].q.id) ? T().reportDone : T().reportBtn;
   $("nextBtn").classList.toggle("hidden", !on);
   $("nextBtn").textContent = run && run.i + 1 >= run.items.length ? T().toResult : T().nextQ;
 }
@@ -2313,7 +2390,7 @@ function answer(optIdx, reason) {
   run.grid.push(reason === "left" ? "⬛" : instant ? "⚡" : ok ? "🟩" : optIdx === null ? "⬜" : "🟥");
   syncLive();                     // μία αποθήκευση (μέσα στο recordAnswer) για πρόοδο και στατιστικά μαζί
   renderDots();
-  recordAnswer(q, ok, instant);
+  if (run.mode !== "party") recordAnswer(q, ok, instant);   // στην παρέα παίζουν κι άλλοι: όχι στα στατιστικά της συσκευής
   [...$("options").children].forEach(b => {
     b.disabled = true;
     const v = Number(b.dataset.opt);
@@ -2352,6 +2429,12 @@ document.addEventListener("visibilitychange", () => {
 
 function finish() {
   stopSpeech();
+  if (run.mode === "party") {                                          // παρέα: αποτέλεσμα στη λίστα, επόμενος παίκτης
+    party.results.push({ name: run.party, score: run.score, correct: run.correct, instant: run.instant, grid: run.grid.join("") });
+    run = null; party.i++;
+    partyScreen();
+    return;
+  }
   const r = {
     mode: run.mode, key: run.key, level: run.level, score: run.score, correct: run.correct, instant: run.instant,
     total: run.items.length, grid: run.grid.join(""), leaves: run.leaves, scheduled: run.scheduled, rules: run.rules,
@@ -2433,11 +2516,7 @@ function renderResult(r) {
   $("resultInstant").textContent = relaxed ? "" : T().instantOf(r.instant || 0, r.correct);
   $("resultRules").textContent = r.rules ? T().rulesOf(r.rules) : "";   // αποτελέσματα πριν από τη v8: χωρίς ένδειξη
   $("resultRules").classList.toggle("hidden", !r.rules);
-  // Ένα κελί ανά ερώτηση (ολόκληρο emoji, ακόμη και με σύνθετους χαρακτήρες)
-  const cells = window.Intl && Intl.Segmenter ? [...new Intl.Segmenter("el", { granularity: "grapheme" }).segment(r.grid || "")].map(x => x.segment)
-    : Array.from(r.grid || "").filter(ch => ch !== "️");
-  $("resultGrid").replaceChildren(...cells.map(ch => { const c = document.createElement("span"); c.textContent = ch; return c; }));
-  $("resultGrid").style.setProperty("--cells", Math.max(cells.length, 1));
+  fillGrid($("resultGrid"), r.grid);
   sceneFor(r);
   $("resultTreasure").classList.toggle("hidden", !r.coins);
   if (r.coins) fillTreasure($("resultTreasure"), r.coins.total, r.coins.earned);
@@ -2489,7 +2568,10 @@ ${T().fixedLine(r.fix.ok, r.fix.n)}` : "");
     a.append(`${T().answerIs} `, ans);
     const ex = document.createElement("div"), link = document.createElement("a");
     fillExplain(ex, link, q);
-    li.append(h, a, ex, link);
+    const rb = document.createElement("button"); rb.type = "button"; rb.className = "link report-btn";
+    rb.textContent = reported(id) ? T().reportDone : T().reportBtn;
+    rb.addEventListener("click", () => rb.replaceWith(reportBox(id)));
+    li.append(h, a, ex, link, rb);
     list.append(li);
   });
   $("reviewBox").classList.toggle("hidden", !list.children.length);
@@ -2708,6 +2790,161 @@ $("chOpen").addEventListener("click", () => { const t = $("chIn").value; $("chIn
 $("chAccept").addEventListener("click", () => { const c = shownChallenge; shownChallenge = null; if (c) startChallenge(c); });
 $("chBack").addEventListener("click", () => { shownChallenge = null; goHome(); });
 $("startRelaxed").addEventListener("click", () => start("relaxed"));
+// ---------- μπάρα αποτελέσματος ----------
+// Ένα κελί ανά ερώτηση (ολόκληρο emoji, ακόμη και με σύνθετους χαρακτήρες) — χωρά πάντα στο πλάτος (v27).
+function fillGrid(el, grid) {
+  const cells = window.Intl && Intl.Segmenter ? [...new Intl.Segmenter("el", { granularity: "grapheme" }).segment(grid || "")].map(x => x.segment)
+    : Array.from(grid || "").filter(ch => ch !== "️");
+  el.replaceChildren(...cells.map(ch => { const c = document.createElement("span"); c.textContent = ch; return c; }));
+  el.style.setProperty("--cells", Math.max(cells.length, 1));
+}
+
+// ---------- αναφορά λάθους (v31, πρόταση P1 του εξωτερικού ελέγχου) ----------
+// Χωρίς server: η αναφορά κρατιέται στη συσκευή (state.reports) και ο παίκτης τη στέλνει όποτε θέλει,
+// με όποιον τρόπο θέλει (κοινοποίηση ή αντιγραφή), από τις Ρυθμίσεις. Δεν στέλνεται τίποτα αυτόματα.
+const REPORT_REASONS = ["wrong", "second", "typo", "old"];
+const reports = () => (state.reports = Array.isArray(state.reports) ? state.reports : []);
+const reported = qid => reports().some(x => x.id === qid);
+function reportBox(qid, onDone) {
+  const box = document.createElement("div"); box.className = "report";
+  const title = document.createElement("b"); title.textContent = T().reportTitle;
+  const chips = document.createElement("div"); chips.className = "chips";
+  const note = document.createElement("input"); note.type = "text"; note.maxLength = 140; note.placeholder = T().reportNote;
+  const send = document.createElement("button"); send.type = "button"; send.className = "secondary"; send.textContent = T().reportSave; send.disabled = true;
+  let reason = null;
+  REPORT_REASONS.forEach(k => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = T().reportReasons[k]; b.dataset.reason = k;
+    b.addEventListener("click", () => { reason = k; chips.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b)); send.disabled = false; });
+    chips.append(b);
+  });
+  send.addEventListener("click", () => {
+    saveReport(qid, reason, note.value.trim());
+    const ok = document.createElement("p"); ok.className = "muted small"; ok.style.margin = "0"; ok.textContent = T().reportThanks;
+    box.replaceChildren(ok);
+    if (onDone) onDone();
+  });
+  box.append(title, chips, note, send);
+  return box;
+}
+function saveReport(qid, reason, note) {
+  const list = reports(), item = { id: qid, reason, note: note.slice(0, 140), at: todayKey(), v: APP_VERSION };
+  const i = list.findIndex(x => x.id === qid);
+  if (i >= 0) list[i] = item; else list.push(item);
+  save(); renderReports();
+}
+// Το κείμενο της αποστολής είναι πάντα και στα ελληνικά της ερώτησης, ώστε ο δημιουργός να τη βρίσκει αμέσως.
+function reportsText() {
+  return [T().reportsHead(APP_VERSION), ...reports().map(x => {
+    const q = BY_ID.get(x.id);
+    return `#${x.id} · ${T().reportReasons[x.reason] || x.reason} · «${q ? q.el[0] : "?"}» → ${q ? q.el[1] : ""}${x.note ? " · " + x.note : ""} (${x.at}, ${x.v})`;
+  })].join("\n");
+}
+function renderReports() {
+  const n = reports().length;
+  $("reportsInfo").textContent = T().reportsInfo(n);
+  $("reportsShare").disabled = $("reportsClear").disabled = !n;
+}
+$("reportBtn").addEventListener("click", () => {
+  const slot = $("reportSlot");
+  if (slot.children.length || !run) { slot.replaceChildren(); return; }
+  const qid = run.items[run.i].q.id;
+  slot.append(reportBox(qid, () => { $("reportBtn").textContent = T().reportDone; }));
+});
+$("reportsShare").addEventListener("click", async () => {
+  const text = reportsText(), msg = $("reportsMsg");
+  try {
+    if (navigator.share) { await navigator.share({ title: T().reportsHead(APP_VERSION), text }); return; }
+    await navigator.clipboard.writeText(text);
+    msg.textContent = T().reportsCopied;
+  } catch { msg.textContent = text; }                               // χωρίς κοινοποίηση/πρόχειρο: το κείμενο φαίνεται για αντιγραφή
+  msg.classList.remove("hidden");
+});
+$("reportsClear").addEventListener("click", () => {
+  if (!confirm(T().reportsConfirm)) return;
+  state.reports = []; save(); renderReports(); $("reportsMsg").classList.add("hidden");
+});
+
+// ---------- παιχνίδι παρέας σε ένα κινητό (v31) ----------
+// 2–4 παίκτες, ίδιες 10 ερωτήσεις με ίδια σειρά επιλογών, ο ένας μετά τον άλλον. Δεν αλλάζει στατιστικά, σερί,
+// θησαυρό ή ημερήσιο του παίκτη της συσκευής. Ερωτήσεις: όπως στην πρόκληση φίλου (αθέατες, όχι πρόσφατα ημερήσια).
+let party = null;
+function partyIds(lvl, avoid = new Set()) {
+  let pool = challengePool(lvl).filter(q => !avoid.has(q.id));
+  if (pool.length < ROUND) pool = practicePool(lvl).filter(q => !avoid.has(q.id));
+  if (pool.length < ROUND) {                                         // όλα ειδωμένα: και ήδη ειδωμένες (όχι σημερινό/μελλοντικό ημερήσιο)
+    const ids = new Set(PRACTICE_IDS[lvl] || []), today = todayKey();
+    for (const [day, list] of Object.entries(SCHED[lvl] || {})) if (day < today) list.forEach(id => ids.add(id));
+    pool = [...ids].filter(id => BY_ID.has(id) && !avoid.has(id)).map(id => BY_ID.get(id));
+  }
+  if (pool.length < ROUND) return null;
+  const seed = (Math.random() * 2 ** 31) | 0;
+  return { seed, ids: shuffled(pool, rng(seed)).slice(0, ROUND).map(q => q.id) };
+}
+$("startParty").addEventListener("click", () => {
+  const box = $("partyBox"), inputs = [...box.querySelectorAll(".partyName")];
+  inputs.forEach((inp, i) => { inp.placeholder = T().partyName(i + 1); });
+  if (!inputs[0].value && P()) inputs[0].value = P().name.slice(0, 14);
+  $("partyMsg").textContent = "";
+  box.classList.toggle("hidden");
+});
+$("partyGo").addEventListener("click", () => {
+  const names = [...document.querySelectorAll(".partyName")].map(i => i.value.trim()).filter(Boolean).slice(0, 4);
+  if (names.length < 2) { $("partyMsg").textContent = T().partyNeed2; return; }
+  const set = partyIds(level());
+  if (!set) { $("partyMsg").textContent = T().partyNoQ; return; }
+  party = { lvl: level(), ...set, names, i: 0, results: [] };
+  $("partyBox").classList.add("hidden");
+  partyScreen();
+});
+function partyScreen() {
+  show("party");
+  const done = party.i >= party.names.length;
+  $("partyScene").classList.toggle("hidden", !done);
+  $("partyTable").classList.toggle("hidden", !done);
+  if (!done) {
+    const n = party.names[party.i];
+    $("partyTitle").textContent = T().partyTurn(n);
+    $("partyText").textContent = T().partyHand(n, party.i + 1, party.names.length);
+    $("partyNext").textContent = T().partyReady;
+    return;
+  }
+  const rows = party.results.slice().sort((a, b) => b.score - a.score || b.correct - a.correct);
+  const tie = rows[1] && rows[1].score === rows[0].score && rows[1].correct === rows[0].correct;
+  $("partyTitle").textContent = tie ? T().partyTie : T().partyWinner(rows[0].name);
+  $("partyText").textContent = T().partySame;
+  $("partyScene").innerHTML = winScene(false);
+  const fmt = v => v.toLocaleString(state.lang === "el" ? "el-GR" : "en-GB");
+  const head = document.createElement("tr");
+  T().partyCols.forEach(c => { const th = document.createElement("th"); th.textContent = c; head.append(th); });
+  const body = rows.map((r, i) => {
+    const tr = document.createElement("tr"); if (r.score === rows[0].score) tr.className = "win";
+    [String(i + 1), r.name, fmt(r.score), `${r.correct}/${ROUND}`, String(r.instant)].forEach(v => { const td = document.createElement("td"); td.textContent = v; tr.append(td); });
+    return tr;
+  });
+  $("partyTable").replaceChildren(head, ...body);
+  $("partyNext").textContent = T().partyAgain;
+  playSound("fanfare");
+}
+$("partyNext").addEventListener("click", () => {
+  if (!party) { goHome(); return; }
+  if (party.i >= party.names.length) {                               // ρεβάνς: νέες ερωτήσεις, ίδια παρέα
+    const set = partyIds(party.lvl, new Set(party.ids));
+    if (!set) { party = null; goHome(); return; }
+    Object.assign(party, set, { i: 0, results: [] });
+    partyScreen();
+    return;
+  }
+  const rand = rng(party.seed * 7919);                              // ίδια σειρά επιλογών για όλους
+  run = {
+    mode: "party", key: todayKey(), level: party.lvl, rules: RULES, i: 0, score: 0, correct: 0, instant: 0, grid: [], leaves: 0, times: [],
+    scheduled: true, items: party.ids.map(id => ({ q: BY_ID.get(id), order: shuffled([0, 1, 2, 3], rand) })),
+    answered: false, deadline: 0, shownAt: 0, party: party.names[party.i]
+  };
+  show("game");
+  nextQuestion();
+});
+$("partyHome").addEventListener("click", () => { party = null; goHome(); });
+
 // Άνοδος επιπέδου με ένα πάτημα (ή «Όχι τώρα»)· και στις δύο περιπτώσεις η μέτρηση ξεκινά από την αρχή.
 function closeLevelUp(go) {
   const p = P(), lvl = lastResult && lastResult.level;
@@ -2733,7 +2970,7 @@ $("openProfile2").addEventListener("click", () => { profileBack = "result"; open
 $("closeProfile").addEventListener("click", () => {
   if (profileBack === "result" && lastResult) renderResult({ ...lastResult, fresh: [] }); else goHome();
 });
-$("openSettings").addEventListener("click", () => { $("refreshMsg").textContent = ""; applyLang(); show("settings"); });
+$("openSettings").addEventListener("click", () => { $("refreshMsg").textContent = ""; $("reportsMsg").classList.add("hidden"); applyLang(); renderReports(); show("settings"); });
 $("closeSettings").addEventListener("click", goHome);
 $("speakAgain").addEventListener("click", speakQuestion);
 $("speakEnable").addEventListener("click", () => { state.voice = "female"; save(); speakQuestion(); });
